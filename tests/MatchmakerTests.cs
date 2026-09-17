@@ -40,7 +40,7 @@ public class MatchmakerTests
     {
         using var m = new Matchmaker();
 
-        Ticket(m, "flex", [(0, 8, 8), (m.Config.MaxTicketPatienceInSec, 2, 8)]);
+        Ticket(m, player: "flex", ranges: [(AtSec: 0, Min: 8, Max: 8), (AtSec: m.Config.MaxTicketPatienceInSec, Min: 2, Max: 8)]);
 
         var t0 = DateTime.UtcNow;
         var tMax = t0.AddSeconds(m.Config.MaxTicketPatienceInSec);
@@ -53,7 +53,7 @@ public class MatchmakerTests
 
         foreach (string player in new[] { "fixed0", "fixed1", "fixed2" })
         {
-            Ticket(m, player, [(0, 4, 4)], createdAt: tMax);
+            Ticket(m, player: player, ranges: [(AtSec: 0, Min: 4, Max: 4)], createdAt: tMax);
         }
 
         var matches = m.RunSweep(tMax);
@@ -79,11 +79,11 @@ public class MatchmakerTests
         var t0 = DateTime.UtcNow;
         var tMax = t0.AddSeconds(sameCeiling.Config.MaxTicketPatienceInSec);
 
-        Ticket(sameCeiling, "p1", [(0, 4, 4), (sameCeiling.Config.MaxTicketPatienceInSec, 2, 4)], createdAt: t0);
+        Ticket(sameCeiling, player: "p1", ranges: [(AtSec: 0, Min: 4, Max: 4), (AtSec: sameCeiling.Config.MaxTicketPatienceInSec, Min: 2, Max: 4)], createdAt: t0);
 
         Assert.That(sameCeiling.RunSweep(t0), Is.Empty);
 
-        Ticket(sameCeiling, "p2", [(0, 4, 4), (sameCeiling.Config.MaxTicketPatienceInSec, 2, 4)], createdAt: tMax);
+        Ticket(sameCeiling, player: "p2", ranges: [(AtSec: 0, Min: 4, Max: 4), (AtSec: sameCeiling.Config.MaxTicketPatienceInSec, Min: 2, Max: 4)], createdAt: tMax);
 
         Assert.That(sameCeiling.RunSweep(tMax), Is.Empty, "p2 has its whole patience to find a lobby of 4");
         Assert.That(sameCeiling.PoolSize, Is.EqualTo(2));
@@ -91,11 +91,11 @@ public class MatchmakerTests
         // Wider Newcomer
         using var widerNewcomer = new Matchmaker();
 
-        Ticket(widerNewcomer, "p1", [(0, 4, 4), (widerNewcomer.Config.MaxTicketPatienceInSec, 2, 4)], createdAt: t0);
+        Ticket(widerNewcomer, player: "p1", ranges: [(AtSec: 0, Min: 4, Max: 4), (AtSec: widerNewcomer.Config.MaxTicketPatienceInSec, Min: 2, Max: 4)], createdAt: t0);
 
         Assert.That(widerNewcomer.RunSweep(t0), Is.Empty);
 
-        Ticket(widerNewcomer, "p2", [(0, 6, 6), (widerNewcomer.Config.MaxTicketPatienceInSec, 2, 6)], createdAt: tMax);
+        Ticket(widerNewcomer, player: "p2", ranges: [(AtSec: 0, Min: 6, Max: 6), (AtSec: widerNewcomer.Config.MaxTicketPatienceInSec, Min: 2, Max: 6)], createdAt: tMax);
 
         Assert.That(widerNewcomer.RunSweep(tMax), Is.Empty, "the seed cannot spend a wider ticket's patience");
         Assert.That(widerNewcomer.ActivePoolSize, Is.EqualTo(1), "only p2 is still seeding");
@@ -106,9 +106,9 @@ public class MatchmakerTests
     {
         using var m = new Matchmaker();
 
-        Ticket(m, "p1", [(0, 3, 3)], "+properties.skill:[1000 TO 2000]", new() { ["skill"] = 1500 });
-        Ticket(m, "p2", [(0, 3, 3)], "+properties.skill:[1500 TO 3000]", new() { ["skill"] = 2000 });
-        Ticket(m, "p3", [(0, 3, 3)], "+properties.skill:[2000 TO 3000]", new() { ["skill"] = 2500 });
+        Ticket(m, player: "p1", ranges: [(AtSec: 0, Min: 3, Max: 3)], "+properties.skill:[1000 TO 2000]", properties: new() { ["skill"] = 1500 });
+        Ticket(m, player: "p2", ranges: [(AtSec: 0, Min: 3, Max: 3)], "+properties.skill:[1500 TO 3000]", properties: new() { ["skill"] = 2000 });
+        Ticket(m, player: "p3", ranges: [(AtSec: 0, Min: 3, Max: 3)], "+properties.skill:[2000 TO 3000]", properties: new() { ["skill"] = 2500 });
 
         var tMax = DateTime.UtcNow.AddSeconds(m.Config.MaxTicketPatienceInSec);
 
@@ -117,9 +117,9 @@ public class MatchmakerTests
 
         using var mutual = new Matchmaker();
 
-        Ticket(mutual, "p1", [(0, 3, 3)], "+properties.skill:[1000 TO 2500]", new() { ["skill"] = 1500 });
-        Ticket(mutual, "p2", [(0, 3, 3)], "+properties.skill:[1500 TO 3000]", new() { ["skill"] = 2000 });
-        Ticket(mutual, "p3", [(0, 3, 3)], "+properties.skill:[1000 TO 3000]", new() { ["skill"] = 2500 });
+        Ticket(mutual, player: "p1", ranges: [(AtSec: 0, Min: 3, Max: 3)], "+properties.skill:[1000 TO 2500]", properties: new() { ["skill"] = 1500 });
+        Ticket(mutual, player: "p2", ranges: [(AtSec: 0, Min: 3, Max: 3)], "+properties.skill:[1500 TO 3000]", properties: new() { ["skill"] = 2000 });
+        Ticket(mutual, player: "p3", ranges: [(AtSec: 0, Min: 3, Max: 3)], "+properties.skill:[1000 TO 3000]", properties: new() { ["skill"] = 2500 });
 
         var matches = mutual.RunSweep();
 
@@ -131,9 +131,9 @@ public class MatchmakerTests
         // accept it, and the one that refused is left queued
         using var settles = new Matchmaker();
 
-        Ticket(settles, "p1_flex", [(0, 3, 3), (settles.Config.MaxTicketPatienceInSec, 2, 3)], "+properties.skill:[1000 TO 3000]", new() { ["skill"] = 2000 });
-        Ticket(settles, "p2_flex", [(0, 3, 3), (settles.Config.MaxTicketPatienceInSec, 2, 3)], "+properties.skill:[1000 TO 3000]", new() { ["skill"] = 2000 });
-        Ticket(settles, "p_picky", [(0, 3, 3), (settles.Config.MaxTicketPatienceInSec, 2, 3)], "+properties.skill:[2800 TO 3000]", new() { ["skill"] = 2900 });
+        Ticket(settles, player: "p1_flex", ranges: [(AtSec: 0, Min: 3, Max: 3), (AtSec: settles.Config.MaxTicketPatienceInSec, Min: 2, Max: 3)], "+properties.skill:[1000 TO 3000]", properties: new() { ["skill"] = 2000 });
+        Ticket(settles, player: "p2_flex", ranges: [(AtSec: 0, Min: 3, Max: 3), (AtSec: settles.Config.MaxTicketPatienceInSec, Min: 2, Max: 3)], "+properties.skill:[1000 TO 3000]", properties: new() { ["skill"] = 2000 });
+        Ticket(settles, player: "p_picky", ranges: [(AtSec: 0, Min: 3, Max: 3), (AtSec: settles.Config.MaxTicketPatienceInSec, Min: 2, Max: 3)], "+properties.skill:[2800 TO 3000]", properties: new() { ["skill"] = 2900 });
 
         var settled = settles.RunSweep(DateTime.UtcNow.AddSeconds(settles.Config.MaxTicketPatienceInSec));
 
@@ -157,7 +157,7 @@ public class MatchmakerTests
 
         foreach (string player in players)
         {
-            Ticket(m, player, [(0, 6, 6), (m.Config.MaxTicketPatienceInSec, floor, 6)], countMultiple: countMultiple);
+            Ticket(m, player: player, ranges: [(AtSec: 0, Min: 6, Max: 6), (AtSec: m.Config.MaxTicketPatienceInSec, Min: floor, Max: 6)], countMultiple: countMultiple);
         }
 
         var t0 = DateTime.UtcNow;
@@ -182,10 +182,10 @@ public class MatchmakerTests
     {
         using var m = new Matchmaker();
 
-        Ticket(m, "p1", [(0, 8, 8), (m.Config.MaxTicketPatienceInSec, 4, 8)], countMultiple: 4);
+        Ticket(m, player: "p1", ranges: [(AtSec: 0, Min: 8, Max: 8), (AtSec: m.Config.MaxTicketPatienceInSec, Min: 4, Max: 8)], countMultiple: 4);
         Party(m, "pA", ["p2", "p3"], [(0, 8, 8), (m.Config.MaxTicketPatienceInSec, 4, 8)], countMultiple: 4);
         Party(m, "pB", ["p4", "p5"], [(0, 8, 8), (m.Config.MaxTicketPatienceInSec, 4, 8)], countMultiple: 4);
-        Ticket(m, "p6", [(0, 8, 8), (m.Config.MaxTicketPatienceInSec, 4, 8)], countMultiple: 4);
+        Ticket(m, player: "p6", ranges: [(AtSec: 0, Min: 8, Max: 8), (AtSec: m.Config.MaxTicketPatienceInSec, Min: 4, Max: 8)], countMultiple: 4);
 
         var tMax = DateTime.UtcNow.AddSeconds(m.Config.MaxTicketPatienceInSec);
 
@@ -208,10 +208,10 @@ public class MatchmakerTests
     {
         using var m = new Matchmaker();
 
-        Ticket(m, "odd", [(0, 6, 6), (m.Config.MaxTicketPatienceInSec, 3, 6)], countMultiple: 3);
+        Ticket(m, player: "odd", ranges: [(AtSec: 0, Min: 6, Max: 6), (AtSec: m.Config.MaxTicketPatienceInSec, Min: 3, Max: 6)], countMultiple: 3);
         foreach (string player in new[] { "p1", "p2", "p3", "p4" })
         {
-            Ticket(m, player, [(0, 6, 6), (m.Config.MaxTicketPatienceInSec, 2, 6)]);
+            Ticket(m, player: player, ranges: [(AtSec: 0, Min: 6, Max: 6), (AtSec: m.Config.MaxTicketPatienceInSec, Min: 2, Max: 6)]);
         }
 
         var tMax = DateTime.UtcNow.AddSeconds(m.Config.MaxTicketPatienceInSec);
@@ -235,9 +235,9 @@ public class MatchmakerTests
     {
         using var m = new Matchmaker();
 
-        Ticket(m, "p1", [(0, 6, 6), (m.Config.MaxTicketPatienceInSec, 2, 6)], countMultiple: 2);
+        Ticket(m, player: "p1", ranges: [(AtSec: 0, Min: 6, Max: 6), (AtSec: m.Config.MaxTicketPatienceInSec, Min: 2, Max: 6)], countMultiple: 2);
         Party(m, "pA", ["p2", "p3", "p4"], [(0, 6, 6)], countMultiple: 2);
-        Ticket(m, "p5", [(0, 6, 6), (m.Config.MaxTicketPatienceInSec, 2, 6)], countMultiple: 2);
+        Ticket(m, player: "p5", ranges: [(AtSec: 0, Min: 6, Max: 6), (AtSec: m.Config.MaxTicketPatienceInSec, Min: 2, Max: 6)], countMultiple: 2);
 
         var tMax = DateTime.UtcNow.AddSeconds(m.Config.MaxTicketPatienceInSec);
 
@@ -258,8 +258,8 @@ public class MatchmakerTests
     {
         using var m = new Matchmaker();
 
-        Ticket(m, "p_any", [(0, 2, 2)], "", new() { ["mode"] = "ranked" });
-        Ticket(m, "p_picky", [(0, 2, 2)], "+properties.mode:ranked", new() { ["mode"] = "ranked" });
+        Ticket(m, player: "p_any", ranges: [(AtSec: 0, Min: 2, Max: 2)], "", properties: new() { ["mode"] = "ranked" });
+        Ticket(m, player: "p_picky", ranges: [(AtSec: 0, Min: 2, Max: 2)], "+properties.mode:ranked", properties: new() { ["mode"] = "ranked" });
 
         var matches = m.RunSweep();
 
@@ -272,8 +272,8 @@ public class MatchmakerTests
 
         using var oneWay = new Matchmaker();
 
-        Ticket(oneWay, "p_any", [(0, 2, 2)], "", new() { ["mode"] = "casual" });
-        Ticket(oneWay, "p_picky", [(0, 2, 2)], "+properties.mode:ranked", new() { ["mode"] = "ranked" });
+        Ticket(oneWay, player: "p_any", ranges: [(AtSec: 0, Min: 2, Max: 2)], "", properties: new() { ["mode"] = "casual" });
+        Ticket(oneWay, player: "p_picky", ranges: [(AtSec: 0, Min: 2, Max: 2)], "+properties.mode:ranked", properties: new() { ["mode"] = "ranked" });
 
         var tMax = DateTime.UtcNow.AddSeconds(oneWay.Config.MaxTicketPatienceInSec);
 
@@ -289,7 +289,7 @@ public class MatchmakerTests
         long previous = 0;
         foreach (string player in new[] { "p1", "p2", "p3", "p4", "p5" })
         {
-            var (_, createdAt) = Ticket(m, player, [(0, 2, 2)]);
+            var (_, createdAt) = Ticket(m, player: player, ranges: [(AtSec: 0, Min: 2, Max: 2)]);
             Assert.That(createdAt, Is.GreaterThan(previous), "each ticket gets a later stamp than the last");
             previous = createdAt;
         }
@@ -387,7 +387,7 @@ public class MatchmakerTests
         Assert.That(m.RunSweep(), Is.Empty, "an empty pool matches nobody");
         Assert.That(m.CancelTicket("no-such-ticket"), Is.False, "an unknown ticket id cancels nothing");
 
-        string ticket = Ticket(m, "p1", [(0, 2, 2)]).Ticket;
+        string ticket = Ticket(m, player: "p1", ranges: [(AtSec: 0, Min: 2, Max: 2)]).Ticket;
 
         Assert.That(m.CancelTicket(ticket), Is.True);
         Assert.That(m.CancelTicket(ticket), Is.False, "the second cancel of a ticket does nothing");
@@ -399,7 +399,7 @@ public class MatchmakerTests
     {
         using var m = new Matchmaker();
 
-        Ticket(m, "p1", ranges: [(0, 4, 4)]);
+        Ticket(m, player: "p1", ranges: [(AtSec: 0, Min: 4, Max: 4)]);
 
         Assert.That(m.RunSweep(), Is.Empty);
         Assert.That(m.ActivePoolSize, Is.Zero, "a fixed-size ticket has nothing to wait for");
@@ -407,7 +407,7 @@ public class MatchmakerTests
 
         using var flexible = new Matchmaker();
 
-        Ticket(flexible, "p2", [(0, 6, 6), (flexible.Config.MaxTicketPatienceInSec, 4, 6)]);
+        Ticket(flexible, player: "p2", ranges: [(AtSec: 0, Min: 6, Max: 6), (AtSec: flexible.Config.MaxTicketPatienceInSec, Min: 4, Max: 6)]);
 
         Assert.That(flexible.RunSweep(), Is.Empty);
         Assert.That(flexible.ActivePoolSize, Is.EqualTo(1));
@@ -418,10 +418,10 @@ public class MatchmakerTests
     {
         using var m = new Matchmaker();
 
-        Ticket(m, "p1", [(0, 6, 6), (m.Config.MaxTicketPatienceInSec, 2, 6)]);
-        Ticket(m, "p2", [(0, 6, 6), (m.Config.MaxTicketPatienceInSec, 2, 6)]);
-        Ticket(m, "p3", [(0, 6, 6), (m.Config.MaxTicketPatienceInSec, 3, 6)]);
-        Ticket(m, "p4", [(0, 6, 6), (m.Config.MaxTicketPatienceInSec, 4, 6)]);
+        Ticket(m, player: "p1", ranges: [(AtSec: 0, Min: 6, Max: 6), (AtSec: m.Config.MaxTicketPatienceInSec, Min: 2, Max: 6)]);
+        Ticket(m, player: "p2", ranges: [(AtSec: 0, Min: 6, Max: 6), (AtSec: m.Config.MaxTicketPatienceInSec, Min: 2, Max: 6)]);
+        Ticket(m, player: "p3", ranges: [(AtSec: 0, Min: 6, Max: 6), (AtSec: m.Config.MaxTicketPatienceInSec, Min: 3, Max: 6)]);
+        Ticket(m, player: "p4", ranges: [(AtSec: 0, Min: 6, Max: 6), (AtSec: m.Config.MaxTicketPatienceInSec, Min: 4, Max: 6)]);
 
         var tMax = DateTime.UtcNow.AddSeconds(m.Config.MaxTicketPatienceInSec);
 
@@ -451,9 +451,9 @@ public class MatchmakerTests
     {
         using var m = new Matchmaker();
 
-        Ticket(m, "p1", [(0, 6, 6), (m.Config.MaxTicketPatienceInSec, 2, 6)], "+properties.skill:[1000 TO 1200]", new() { ["skill"] = 1100 });
-        Ticket(m, "p2", [(0, 4, 4)], "+properties.skill:[900 TO 1100]", new() { ["skill"] = 1000 });
-        Ticket(m, "p3", [(0, 8, 8), (m.Config.MaxTicketPatienceInSec, 2, 8)], "+properties.skill:[500 TO 1500]", new() { ["skill"] = 1200 });
+        Ticket(m, player: "p1", ranges: [(AtSec: 0, Min: 6, Max: 6), (AtSec: m.Config.MaxTicketPatienceInSec, Min: 2, Max: 6)], "+properties.skill:[1000 TO 1200]", properties: new() { ["skill"] = 1100 });
+        Ticket(m, player: "p2", ranges: [(AtSec: 0, Min: 4, Max: 4)], "+properties.skill:[900 TO 1100]", properties: new() { ["skill"] = 1000 });
+        Ticket(m, player: "p3", ranges: [(AtSec: 0, Min: 8, Max: 8), (AtSec: m.Config.MaxTicketPatienceInSec, Min: 2, Max: 8)], "+properties.skill:[500 TO 1500]", properties: new() { ["skill"] = 1200 });
 
         var tMax = DateTime.UtcNow.AddSeconds(m.Config.MaxTicketPatienceInSec);
 
@@ -482,18 +482,18 @@ public class MatchmakerTests
 
         var t0 = DateTime.UtcNow;
 
-        Ticket(m, "p1", [(0, 4, 4)],
-            [
-                (0, "+properties.skill:[900 TO 1100]"),
-                (10, "+properties.skill:[700 TO 1300]"),
-                (20, "+properties.skill:[500 TO 2000]"),
+        Ticket(m, player: "p1", ranges: [(AtSec: 0, Min: 4, Max: 4)],
+            queries: [
+                (AtSec: 0, Query: "+properties.skill:[900 TO 1100]"),
+                (AtSec: 10, Query: "+properties.skill:[700 TO 1300]"),
+                (AtSec: 20, Query: "+properties.skill:[500 TO 2000]"),
             ],
-            new() { ["skill"] = 1000 }, createdAt: t0.AddSeconds(-20));
+            properties: new() { ["skill"] = 1000 }, createdAt: t0.AddSeconds(-20));
 
         foreach (string player in new[] { "p2", "p3", "p4" })
         {
-            Ticket(m, player, [(0, 4, 4)], "+properties.skill:[900 TO 2000]",
-                new() { ["skill"] = 1500 }, createdAt: t0.AddSeconds(-20));
+            Ticket(m, player: player, ranges: [(AtSec: 0, Min: 4, Max: 4)], "+properties.skill:[900 TO 2000]",
+                properties: new() { ["skill"] = 1500 }, createdAt: t0.AddSeconds(-20));
         }
 
         var matches = m.RunSweep(t0);
@@ -511,18 +511,18 @@ public class MatchmakerTests
     {
         using var m = new Matchmaker(new MatchmakerConfig { MaxTicketPatienceInSec = 30 });
 
-        Ticket(m, "picky", [(0, 4, 4), (m.Config.MaxTicketPatienceInSec, 2, 4)],
-            [
-                (0, "+properties.mode:ranked +properties.skill:[900 TO 1100]"),
-                (10, "+properties.mode:ranked +properties.skill:[400 TO 1600]"),
+        Ticket(m, player: "picky", ranges: [(AtSec: 0, Min: 4, Max: 4), (AtSec: m.Config.MaxTicketPatienceInSec, Min: 2, Max: 4)],
+            queries: [
+                (AtSec: 0, Query: "+properties.mode:ranked +properties.skill:[900 TO 1100]"),
+                (AtSec: 10, Query: "+properties.mode:ranked +properties.skill:[400 TO 1600]"),
             ],
-            new() { ["mode"] = "ranked", ["skill"] = 1000 });
+            properties: new() { ["mode"] = "ranked", ["skill"] = 1000 });
 
         foreach (string far in new[] { "far1", "far2" })
         {
-            Ticket(m, far, [(0, 4, 4), (m.Config.MaxTicketPatienceInSec, 2, 4)],
+            Ticket(m, player: far, ranges: [(AtSec: 0, Min: 4, Max: 4), (AtSec: m.Config.MaxTicketPatienceInSec, Min: 2, Max: 4)],
                 "+properties.mode:ranked +properties.skill:[900 TO 2100]",
-                new() { ["mode"] = "ranked", ["skill"] = 1500 });
+                properties: new() { ["mode"] = "ranked", ["skill"] = 1500 });
         }
 
         var t0 = DateTime.UtcNow;
@@ -545,15 +545,15 @@ public class MatchmakerTests
     {
         var (matches, _) = SweepInQueueOrder(
             new MatchmakerConfig { MaxTicketPatienceInSec = 10 }, pickyFirst, sweepAtSec: 10,
-            first: m => Ticket(m, "picky", [(0, 4, 4), (m.Config.MaxTicketPatienceInSec, 2, 4)],
-                [
-                    (0, "+properties.mode:ranked +properties.skill:[900 TO 1100]"),
-                    (10, "+properties.mode:ranked +properties.skill:[400 TO 1600]"),
+            first: m => Ticket(m, player: "picky", ranges: [(AtSec: 0, Min: 4, Max: 4), (AtSec: m.Config.MaxTicketPatienceInSec, Min: 2, Max: 4)],
+                queries: [
+                    (AtSec: 0, Query: "+properties.mode:ranked +properties.skill:[900 TO 1100]"),
+                    (AtSec: 10, Query: "+properties.mode:ranked +properties.skill:[400 TO 1600]"),
                 ],
-                new() { ["mode"] = "ranked", ["skill"] = 1000 }),
-            second: m => Ticket(m, "far1", [(0, 4, 4), (m.Config.MaxTicketPatienceInSec, 2, 4)],
+                properties: new() { ["mode"] = "ranked", ["skill"] = 1000 }),
+            second: m => Ticket(m, player: "far1", ranges: [(AtSec: 0, Min: 4, Max: 4), (AtSec: m.Config.MaxTicketPatienceInSec, Min: 2, Max: 4)],
                 "+properties.mode:ranked +properties.skill:[900 TO 2100]",
-                new() { ["mode"] = "ranked", ["skill"] = 1500 }));
+                properties: new() { ["mode"] = "ranked", ["skill"] = 1500 }));
 
         Assert.That(matches, Has.Count.EqualTo(1));
         Assert.That(matches[0].SelectMany(ticket => ticket.Members), Is.EquivalentTo(new[] { "picky", "far1" }));
@@ -590,8 +590,8 @@ public class MatchmakerTests
         var config = new MatchmakerConfig { MaxTicketPatienceInSec = 30 };
         using var m = new Matchmaker(config);
 
-        Ticket(m, "p1", ranges: [(0, 6, 6), (10, 4, 6), (20, 2, 6)]);
-        Ticket(m, "p2", ranges: [(0, 6, 6), (10, 4, 6), (20, 2, 6)]);
+        Ticket(m, player: "p1", ranges: [(AtSec: 0, Min: 6, Max: 6), (AtSec: 10, Min: 4, Max: 6), (AtSec: 20, Min: 2, Max: 6)]);
+        Ticket(m, player: "p2", ranges: [(AtSec: 0, Min: 6, Max: 6), (AtSec: 10, Min: 4, Max: 6), (AtSec: 20, Min: 2, Max: 6)]);
 
         var t0 = DateTime.UtcNow;
 
@@ -606,8 +606,8 @@ public class MatchmakerTests
 
         using var flat = new Matchmaker(config);
 
-        Ticket(flat, "p1", [(0, 6, 6), (flat.Config.MaxTicketPatienceInSec, 2, 6)]);
-        Ticket(flat, "p2", [(0, 6, 6), (flat.Config.MaxTicketPatienceInSec, 2, 6)]);
+        Ticket(flat, player: "p1", ranges: [(AtSec: 0, Min: 6, Max: 6), (AtSec: flat.Config.MaxTicketPatienceInSec, Min: 2, Max: 6)]);
+        Ticket(flat, player: "p2", ranges: [(AtSec: 0, Min: 6, Max: 6), (AtSec: flat.Config.MaxTicketPatienceInSec, Min: 2, Max: 6)]);
 
         var flatT0 = DateTime.UtcNow;
 
@@ -634,10 +634,10 @@ public class MatchmakerTests
     {
         using var m = new Matchmaker();
 
-        Ticket(m, "narrow", [(0, 3, 3), (m.Config.MaxTicketPatienceInSec, 2, 3)]);
-        Ticket(m, "wide", [(0, 6, 6), (m.Config.MaxTicketPatienceInSec, 2, 6)]);
-        Ticket(m, "fits1", [(0, 3, 3), (m.Config.MaxTicketPatienceInSec, 2, 3)]);
-        Ticket(m, "fits2", [(0, 3, 3), (m.Config.MaxTicketPatienceInSec, 2, 3)]);
+        Ticket(m, player: "narrow", ranges: [(AtSec: 0, Min: 3, Max: 3), (AtSec: m.Config.MaxTicketPatienceInSec, Min: 2, Max: 3)]);
+        Ticket(m, player: "wide", ranges: [(AtSec: 0, Min: 6, Max: 6), (AtSec: m.Config.MaxTicketPatienceInSec, Min: 2, Max: 6)]);
+        Ticket(m, player: "fits1", ranges: [(AtSec: 0, Min: 3, Max: 3), (AtSec: m.Config.MaxTicketPatienceInSec, Min: 2, Max: 3)]);
+        Ticket(m, player: "fits2", ranges: [(AtSec: 0, Min: 3, Max: 3), (AtSec: m.Config.MaxTicketPatienceInSec, Min: 2, Max: 3)]);
 
         var matches = m.RunSweep();
 
@@ -653,9 +653,9 @@ public class MatchmakerTests
         // two trios were short of.
         using var untilPatienceTurns = new Matchmaker();
 
-        Ticket(untilPatienceTurns, "flex", [(0, 8, 8), (untilPatienceTurns.Config.MaxTicketPatienceInSec, 2, 8)]);
-        Ticket(untilPatienceTurns, "trio1", ranges: [(0, 3, 3)]);
-        Ticket(untilPatienceTurns, "trio2", ranges: [(0, 3, 3)]);
+        Ticket(untilPatienceTurns, player: "flex", ranges: [(AtSec: 0, Min: 8, Max: 8), (AtSec: untilPatienceTurns.Config.MaxTicketPatienceInSec, Min: 2, Max: 8)]);
+        Ticket(untilPatienceTurns, player: "trio1", ranges: [(AtSec: 0, Min: 3, Max: 3)]);
+        Ticket(untilPatienceTurns, player: "trio2", ranges: [(AtSec: 0, Min: 3, Max: 3)]);
 
         var t0 = DateTime.UtcNow;
         var tMax = t0.AddSeconds(untilPatienceTurns.Config.MaxTicketPatienceInSec);
@@ -686,7 +686,7 @@ public class MatchmakerTests
 
         foreach (string player in new[] { "p1", "p2", "p3", "p4", "p5", "p6" })
         {
-            Ticket(full, player, ranges: [(0, 4, 6), (10, 2, 6)]);
+            Ticket(full, player: player, ranges: [(AtSec: 0, Min: 4, Max: 6), (AtSec: 10, Min: 2, Max: 6)]);
         }
 
         var matches = full.RunSweep(DateTime.UtcNow);
@@ -698,7 +698,7 @@ public class MatchmakerTests
 
         foreach (string player in new[] { "p1", "p2", "p3", "p4" })
         {
-            Ticket(shortHanded, player, ranges: [(0, 4, 6), (10, 2, 6)]);
+            Ticket(shortHanded, player: player, ranges: [(AtSec: 0, Min: 4, Max: 6), (AtSec: 10, Min: 2, Max: 6)]);
         }
 
         var shortMatches = shortHanded.RunSweep(DateTime.UtcNow);
@@ -722,9 +722,9 @@ public class MatchmakerTests
         using var m = new Matchmaker(new MatchmakerConfig { MaxTicketPatienceInSec = 30 });
 
         // queued first, so they seed first and a1 is only ever reached as a candidate
-        Ticket(m, "b1", [(0, 4, 4), (m.Config.MaxTicketPatienceInSec, 2, 4)]);
-        Ticket(m, "b2", [(0, 4, 4), (m.Config.MaxTicketPatienceInSec, 2, 4)]);
-        Ticket(m, "a1", ranges: [(0, 6, 6), (10, 3, 3)]);
+        Ticket(m, player: "b1", ranges: [(AtSec: 0, Min: 4, Max: 4), (AtSec: m.Config.MaxTicketPatienceInSec, Min: 2, Max: 4)]);
+        Ticket(m, player: "b2", ranges: [(AtSec: 0, Min: 4, Max: 4), (AtSec: m.Config.MaxTicketPatienceInSec, Min: 2, Max: 4)]);
+        Ticket(m, player: "a1", ranges: [(AtSec: 0, Min: 6, Max: 6), (AtSec: 10, Min: 3, Max: 3)]);
 
         var t0 = DateTime.UtcNow;
 
@@ -812,11 +812,11 @@ public class MatchmakerTests
 
         var (matches, poolSize) = SweepInQueueOrder(
             config, wideFirst, sweepAtSec: config.MaxTicketPatienceInSec,
-            first: m => Ticket(m, "wide", [(0, 4, 4), (m.Config.MaxTicketPatienceInSec, 3, 4)]),
+            first: m => Ticket(m, player: "wide", ranges: [(AtSec: 0, Min: 4, Max: 4), (AtSec: m.Config.MaxTicketPatienceInSec, Min: 3, Max: 4)]),
             second: m =>
             {
-                Ticket(m, "n1", [(0, 3, 3), (m.Config.MaxTicketPatienceInSec, 2, 3)]);
-                Ticket(m, "n2", [(0, 3, 3), (m.Config.MaxTicketPatienceInSec, 2, 3)]);
+                Ticket(m, player: "n1", ranges: [(AtSec: 0, Min: 3, Max: 3), (AtSec: m.Config.MaxTicketPatienceInSec, Min: 2, Max: 3)]);
+                Ticket(m, player: "n2", ranges: [(AtSec: 0, Min: 3, Max: 3), (AtSec: m.Config.MaxTicketPatienceInSec, Min: 2, Max: 3)]);
             });
 
         Assert.That(matches, Has.Count.EqualTo(1));
@@ -888,12 +888,12 @@ public class MatchmakerTests
     {
         using var m = new Matchmaker(new MatchmakerConfig { MaxTicketPatienceInSec = 20 });
 
-        Ticket(m, "waiter", [(0, 4, 4), (m.Config.MaxTicketPatienceInSec, 2, 4)],
-            [
-                (0, "+properties.mode:ranked +properties.skill:[900 TO 1100]"),
-                (10, "+properties.mode:ranked +properties.skill:[500 TO 1500]"),
+        Ticket(m, player: "waiter", ranges: [(AtSec: 0, Min: 4, Max: 4), (AtSec: m.Config.MaxTicketPatienceInSec, Min: 2, Max: 4)],
+            queries: [
+                (AtSec: 0, Query: "+properties.mode:ranked +properties.skill:[900 TO 1100]"),
+                (AtSec: 10, Query: "+properties.mode:ranked +properties.skill:[500 TO 1500]"),
             ],
-            new() { ["mode"] = "ranked", ["skill"] = 1000 });
+            properties: new() { ["mode"] = "ranked", ["skill"] = 1000 });
 
         var t0 = DateTime.UtcNow;
 
@@ -904,9 +904,9 @@ public class MatchmakerTests
         Assert.That(m.ActivePoolSize, Is.Zero, "waiter has spent its patience and gone passive");
         Assert.That(m.PoolSize, Is.EqualTo(1));
 
-        Ticket(m, "partner", [(0, 4, 4), (m.Config.MaxTicketPatienceInSec, 2, 4)],
+        Ticket(m, player: "partner", ranges: [(AtSec: 0, Min: 4, Max: 4), (AtSec: m.Config.MaxTicketPatienceInSec, Min: 2, Max: 4)],
             "+properties.mode:ranked +properties.skill:[900 TO 2100]",
-            new() { ["mode"] = "ranked", ["skill"] = 1500 });
+            properties: new() { ["mode"] = "ranked", ["skill"] = 1500 });
 
         // partner queued just now, so the instant that spends waiter's patience leaves partner
         // still holding out for the full lobby - it settles a whole patience of its own later
@@ -919,8 +919,8 @@ public class MatchmakerTests
 
         using var singleRung = new Matchmaker(new MatchmakerConfig { MaxTicketPatienceInSec = 20 });
 
-        Ticket(singleRung, "waiter", [(0, 4, 4), (singleRung.Config.MaxTicketPatienceInSec, 2, 4)],
-            "+properties.skill:[900 TO 1100]", new() { ["skill"] = 1000 });
+        Ticket(singleRung, player: "waiter", ranges: [(AtSec: 0, Min: 4, Max: 4), (AtSec: singleRung.Config.MaxTicketPatienceInSec, Min: 2, Max: 4)],
+            "+properties.skill:[900 TO 1100]", properties: new() { ["skill"] = 1000 });
 
         var singleRungT0 = DateTime.UtcNow;
 
@@ -929,8 +929,8 @@ public class MatchmakerTests
         Assert.That(singleRung.RunSweep(singleRungT0), Is.Empty);
         Assert.That(singleRung.RunSweep(singleRungTMax), Is.Empty);
 
-        Ticket(singleRung, "partner", [(0, 4, 4), (singleRung.Config.MaxTicketPatienceInSec, 2, 4)],
-            "+properties.skill:[900 TO 2100]", new() { ["skill"] = 1500 });
+        Ticket(singleRung, player: "partner", ranges: [(AtSec: 0, Min: 4, Max: 4), (AtSec: singleRung.Config.MaxTicketPatienceInSec, Min: 2, Max: 4)],
+            "+properties.skill:[900 TO 2100]", properties: new() { ["skill"] = 1500 });
 
         var singleRungPartnerMax = DateTime.UtcNow.AddSeconds(singleRung.Config.MaxTicketPatienceInSec);
 
@@ -955,38 +955,38 @@ public class MatchmakerTests
         Assert.Multiple(() =>
         {
             Assert.Throws<ArgumentException>(
-                () => Ticket(m, "p1", ranges: [(0, 4, 4), (m.Config.MaxTicketPatienceInSec, 1, 4)]),
+                () => Ticket(m, player: "p1", ranges: [(AtSec: 0, Min: 4, Max: 4), (AtSec: m.Config.MaxTicketPatienceInSec, Min: 1, Max: 4)]),
                 "rung 1's minCount must be at least 2");
             Assert.Throws<ArgumentException>(
-                () => Ticket(m, "p1", ranges: [(0, 3, 3), (m.Config.MaxTicketPatienceInSec, 4, 3)]),
+                () => Ticket(m, player: "p1", ranges: [(AtSec: 0, Min: 3, Max: 3), (AtSec: m.Config.MaxTicketPatienceInSec, Min: 4, Max: 3)]),
                 "rung 1's maxCount must be at least its minCount");
             Assert.Throws<ArgumentException>(
                 () => Party(m, "party", ["m1", "m2", "m3", "m4", "m5", "m6"], ranges: [(0, 6, 8), (10, 2, 4)]),
                 "rung 1's maxCount must fit the roster");
 
             Assert.Throws<ArgumentException>(
-                () => Ticket(m, "p1", ranges: [(0, 4, 4), (m.Config.MaxTicketPatienceInSec, 2, 4)], countMultiple: 0),
+                () => Ticket(m, player: "p1", ranges: [(AtSec: 0, Min: 4, Max: 4), (AtSec: m.Config.MaxTicketPatienceInSec, Min: 2, Max: 4)], countMultiple: 0),
                 "countMultiple must be at least 1");
             Assert.Throws<ArgumentException>(
-                () => Ticket(m, "p1", ranges: [(0, 6, 6), (m.Config.MaxTicketPatienceInSec, 4, 6)], countMultiple: 7),
+                () => Ticket(m, player: "p1", ranges: [(AtSec: 0, Min: 6, Max: 6), (AtSec: m.Config.MaxTicketPatienceInSec, Min: 4, Max: 6)], countMultiple: 7),
                 "the range must contain a multiple");
             Assert.Throws<ArgumentException>(
-                () => Ticket(m, "p1", ranges: [(0, 6, 6), (m.Config.MaxTicketPatienceInSec, 4, 6)], countMultiple: 4),
+                () => Ticket(m, player: "p1", ranges: [(AtSec: 0, Min: 6, Max: 6), (AtSec: m.Config.MaxTicketPatienceInSec, Min: 4, Max: 6)], countMultiple: 4),
                 "maxCount must be a multiple of countMultiple");
             Assert.Throws<ArgumentException>(
-                () => Ticket(m, "p1", ranges: [(0, 4, 8), (10, 4, 6)], countMultiple: 4),
+                () => Ticket(m, player: "p1", ranges: [(AtSec: 0, Min: 4, Max: 8), (AtSec: 10, Min: 4, Max: 6)], countMultiple: 4),
                 "rung 1's maxCount must be a multiple of countMultiple");
             Assert.Throws<ArgumentException>(
-                () => Ticket(m, "p1", ranges: [(0, 8, 8), (m.Config.MaxTicketPatienceInSec, 5, 8)], countMultiple: 2),
+                () => Ticket(m, player: "p1", ranges: [(AtSec: 0, Min: 8, Max: 8), (AtSec: m.Config.MaxTicketPatienceInSec, Min: 5, Max: 8)], countMultiple: 2),
                 "rung 1's minCount must be a multiple of countMultiple");
             Assert.Throws<ArgumentException>(
-                () => Ticket(m, "p1", ranges: [(0, 4, 8), (10, 4, 6), (10, 4, 6)], countMultiple: 2),
+                () => Ticket(m, player: "p1", ranges: [(AtSec: 0, Min: 4, Max: 8), (AtSec: 10, Min: 4, Max: 6), (AtSec: 10, Min: 4, Max: 6)], countMultiple: 2),
                 "rung cannot duplicate");
             Assert.Throws<ArgumentException>(
-                () => Ticket(m, "p1", ranges: [(0, 2, 6), (10, 4, 6)]),
+                () => Ticket(m, player: "p1", ranges: [(AtSec: 0, Min: 2, Max: 6), (AtSec: 10, Min: 4, Max: 6)]),
                 "a rung's floor may not rise");
             Assert.Throws<ArgumentException>(
-                () => Ticket(m, "p1", ranges: [(0, 4, 6), (10, 2, 8)]),
+                () => Ticket(m, player: "p1", ranges: [(AtSec: 0, Min: 4, Max: 6), (AtSec: 10, Min: 2, Max: 8)]),
                 "a rung's ceiling may not rise");
         });
 
@@ -1038,8 +1038,8 @@ public class MatchmakerTests
         Assert.That(m.PoolSize, Is.Zero, "no rejected ticket left partial state");
         Assert.That(m.ActivePoolSize, Is.Zero);
 
-        Ticket(m, "p1", [(0, 2, 2)]);
-        Ticket(m, "p2", [(0, 2, 2)]);
+        Ticket(m, player: "p1", ranges: [(AtSec: 0, Min: 2, Max: 2)]);
+        Ticket(m, player: "p2", ranges: [(AtSec: 0, Min: 2, Max: 2)]);
 
         Assert.That(m.RunSweep(), Has.Count.EqualTo(1), "the rejections left a matchmaker that still seats a legal pair");
         Assert.That(m.PoolSize, Is.Zero);
@@ -1053,9 +1053,9 @@ public class MatchmakerTests
             properties: new() { ["mode"] = "ranked", ["skill"] = 550 },
             minMaxLadder: [(0, 4, 4), (m.Config.MaxTicketPatienceInSec, 2, 4)]));
 
-        Assert.DoesNotThrow(() => Ticket(m, "p4", ranges: [(0, 6, 6), (10, 4, 6)]),
+        Assert.DoesNotThrow(() => Ticket(m, player: "p4", ranges: [(AtSec: 0, Min: 6, Max: 6), (AtSec: 10, Min: 4, Max: 6)]),
             "a falling floor with a held ceiling is allowed");
-        Assert.DoesNotThrow(() => Ticket(m, "p5", ranges: [(0, 6, 8), (10, 4, 6)]),
+        Assert.DoesNotThrow(() => Ticket(m, player: "p5", ranges: [(AtSec: 0, Min: 6, Max: 8), (AtSec: 10, Min: 4, Max: 6)]),
             "a falling floor and ceiling are allowed");
 
         Assert.That(m.PoolSize, Is.EqualTo(3), "only the legal ladders queued");
@@ -1069,29 +1069,29 @@ public class MatchmakerTests
             MaxLadderRungs = 3,
         });
 
-        Ticket(capped, "p1", [(0, 6, 6), (capped.Config.MaxTicketPatienceInSec, 2, 6)],
-            [
-                (0, "+properties.skill:[900 TO 1100]"),
-                (15, "+properties.skill:[400 TO 1600]"),
-                (30, "*"),
+        Ticket(capped, player: "p1", ranges: [(AtSec: 0, Min: 6, Max: 6), (AtSec: capped.Config.MaxTicketPatienceInSec, Min: 2, Max: 6)],
+            queries: [
+                (AtSec: 0, Query: "+properties.skill:[900 TO 1100]"),
+                (AtSec: 15, Query: "+properties.skill:[400 TO 1600]"),
+                (AtSec: 30, Query: "*"),
             ],
-            new() { ["skill"] = 1000 });
+            properties: new() { ["skill"] = 1000 });
 
         Assert.Throws<ArgumentException>(
-            () => Ticket(capped, "p2", [(0, 6, 6), (capped.Config.MaxTicketPatienceInSec, 2, 6)],
-                [
-                    (0, "+properties.skill:[900 TO 1100]"),
-                    (5,  "+properties.skill:[800 TO 1200]"),
-                    (15, "+properties.skill:[400 TO 1600]"),
-                    (30, "*"),
+            () => Ticket(capped, player: "p2", ranges: [(AtSec: 0, Min: 6, Max: 6), (AtSec: capped.Config.MaxTicketPatienceInSec, Min: 2, Max: 6)],
+                queries: [
+                    (AtSec: 0, Query: "+properties.skill:[900 TO 1100]"),
+                    (AtSec: 5, Query: "+properties.skill:[800 TO 1200]"),
+                    (AtSec: 15, Query: "+properties.skill:[400 TO 1600]"),
+                    (AtSec: 30, Query: "*"),
                 ],
-                new() { ["skill"] = 1000 }),
+                properties: new() { ["skill"] = 1000 }),
             "a four-rung query ladder is over the cap of three");
 
-        Ticket(capped, "p3", ranges: [(0, 6, 6), (5, 4, 6), (30, 2, 6)]);
+        Ticket(capped, player: "p3", ranges: [(AtSec: 0, Min: 6, Max: 6), (AtSec: 5, Min: 4, Max: 6), (AtSec: 30, Min: 2, Max: 6)]);
 
         Assert.Throws<ArgumentException>(
-            () => Ticket(capped, "p4", ranges: [(0, 6, 6), (5, 4, 6), (20, 4, 4), (30, 2, 4)]),
+            () => Ticket(capped, player: "p4", ranges: [(AtSec: 0, Min: 6, Max: 6), (AtSec: 5, Min: 4, Max: 6), (AtSec: 20, Min: 4, Max: 4), (AtSec: 30, Min: 2, Max: 4)]),
             "a four-rung range ladder is over the same cap");
 
         Assert.That(capped.PoolSize, Is.EqualTo(2), "only the two legal ladders are queued");
@@ -1101,10 +1101,10 @@ public class MatchmakerTests
         using var noLadders = new Matchmaker(new MatchmakerConfig { MaxLadderRungs = 1 });
 
         Assert.Throws<ArgumentException>(
-            () => Ticket(noLadders, "p1", ranges: [(0, 4, 4)], queries: [(0, "*"), (30, "*")]),
+            () => Ticket(noLadders, player: "p1", ranges: [(AtSec: 0, Min: 4, Max: 4)], queries: [(AtSec: 0, Query: "*"), (AtSec: 30, Query: "*")]),
             "a two-rung query ladder is over the cap of one");
 
-        Ticket(noLadders, "p2", ranges: [(0, 2, 4)]);
+        Ticket(noLadders, player: "p2", ranges: [(AtSec: 0, Min: 2, Max: 4)]);
         Assert.That(noLadders.PoolSize, Is.EqualTo(1), "the single-query form is one rung and fits");
     }
 
