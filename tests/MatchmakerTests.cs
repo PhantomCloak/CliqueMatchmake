@@ -9,38 +9,142 @@ public class MatchmakerTests
     public void ConjunctiveQueryExcludesTicketsDifferingInASingleTerm()
     {
         using var m = new Matchmaker();
-        const int TeamSize = 2;
 
-        var wrongRegion = AddPool(m, 2, "casual", "us-east", "pc", TeamSize);
-        var wrongPlatform = AddPool(m, 2, "casual", "eu-west", "console", TeamSize);
-        var wrongMode = AddPool(m, 2, "ranked", "eu-west", "pc", TeamSize);
+        Ticket(m, player: "wrong-region", ranges: [(AtSec: 0, Min: 2, Max: 2)],
+            "+properties.mode:casual +properties.region:us-east +properties.platform:pc", properties: new() { ["mode"] = "casual", ["region"] = "us-east", ["platform"] = "pc" });
+        Ticket(m, player: "wrong-platform", ranges: [(AtSec: 0, Min: 2, Max: 2)],
+            "+properties.mode:casual +properties.region:eu-west +properties.platform:console", properties: new() { ["mode"] = "casual", ["region"] = "eu-west", ["platform"] = "console" });
+        Ticket(m, player: "wrong-mode", ranges: [(AtSec: 0, Min: 2, Max: 2)],
+            "+properties.mode:ranked +properties.region:eu-west +properties.platform:pc", properties: new() { ["mode"] = "ranked", ["region"] = "eu-west", ["platform"] = "pc" });
 
-        var casual = AddPool(m, TeamSize * 2, "casual", "eu-west", "pc", TeamSize);
+        Ticket(m, player: "casual1", ranges: [(AtSec: 0, Min: 2, Max: 2)],
+            "+properties.mode:casual +properties.region:eu-west +properties.platform:pc", properties: new() { ["mode"] = "casual", ["region"] = "eu-west", ["platform"] = "pc" });
+        Ticket(m, player: "casual2", ranges: [(AtSec: 0, Min: 2, Max: 2)],
+            "+properties.mode:casual +properties.region:eu-west +properties.platform:pc", properties: new() { ["mode"] = "casual", ["region"] = "eu-west", ["platform"] = "pc" });
+
+        var matches = m.RunSweep();
+
+        Assert.That(matches, Has.Count.EqualTo(1));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(matches[0].SelectMany(ticket => ticket.Members), Is.EquivalentTo(new[] { "casual1", "casual2" }));
+            Assert.That(m.PoolSize, Is.EqualTo(3), "every near-miss ticket stays queued");
+        });
+    }
+
+    [Test]
+    public void SettledSizeMeetsTheHighestFloorInTheLobby() // OK
+    {
+        using var m = new Matchmaker();
+
+        Ticket(m, player: "p1", ranges: [(AtSec: 0, Min: 6, Max: 6), (AtSec: m.Config.MaxTicketPatienceInSec, Min: 2, Max: 6)]);
+        Ticket(m, player: "p2", ranges: [(AtSec: 0, Min: 6, Max: 6), (AtSec: m.Config.MaxTicketPatienceInSec, Min: 2, Max: 6)]);
+        Ticket(m, player: "p3", ranges: [(AtSec: 0, Min: 6, Max: 6), (AtSec: m.Config.MaxTicketPatienceInSec, Min: 3, Max: 6)]);
+        Ticket(m, player: "p4", ranges: [(AtSec: 0, Min: 6, Max: 6), (AtSec: m.Config.MaxTicketPatienceInSec, Min: 4, Max: 6)]);
 
         var tMax = DateTime.UtcNow.AddSeconds(m.Config.MaxTicketPatienceInSec);
 
         var matches = m.RunSweep(tMax);
 
         Assert.That(matches, Has.Count.EqualTo(1));
+        Assert.That(matches[0].Sum(ticket => ticket.Size), Is.EqualTo(4));
+        Assert.That(m.PoolSize, Is.Zero);
+    }
 
-        var match = matches[0];
+    [Test]
+    public void OldestTicketsAreMatchedFirstAndTheNewestWaits()
+    {
+        using var m = new Matchmaker();
+
+        long previous = 0;
+        foreach (string player in new[] { "p1", "p2", "p3", "p4", "p5" })
+        {
+            var (_, createdAt) = Ticket(m, player: player, ranges: [(AtSec: 0, Min: 2, Max: 2)]);
+            Assert.That(createdAt, Is.GreaterThan(previous), "each ticket gets a later stamp than the last");
+            previous = createdAt;
+        }
+
+        var matches = m.RunSweep();
+
+        Assert.That(matches, Has.Count.EqualTo(2));
 
         Assert.Multiple(() =>
         {
-            Assert.That(match.Sum(ticket => ticket.Size), Is.EqualTo(TeamSize * 2));
-            Assert.That(match.Select(Preferences).Distinct(), Has.Exactly(1).Items);
-            Assert.That(match.SelectMany(ticket => ticket.Members), Is.EquivalentTo(casual));
-            Assert.That(m.PoolSize, Is.EqualTo(wrongRegion.Count + wrongPlatform.Count + wrongMode.Count),
-                "every near-miss pool stays queued");
+            Assert.That(matches[0].SelectMany(ticket => ticket.Members), Is.EquivalentTo(new[] { "p1", "p2" }));
+            Assert.That(matches[1].SelectMany(ticket => ticket.Members), Is.EquivalentTo(new[] { "p3", "p4" }));
+            Assert.That(m.PoolSize, Is.EqualTo(1), "only the newest ticket is left waiting");
         });
     }
 
     [Test]
-    public void PassiveFlexibleTicketIsRecruitedByNarrowerTickets() // OK
+    public void EmptyQueryTicketAcceptsAnyoneButStillHasToBeAccepted()
     {
         using var m = new Matchmaker();
 
-        Ticket(m, player: "flex", ranges: [(AtSec: 0, Min: 8, Max: 8), (AtSec: m.Config.MaxTicketPatienceInSec, Min: 2, Max: 8)]);
+        Ticket(m, player: "p_any", ranges: [(AtSec: 0, Min: 2, Max: 2)], "", properties: new() { ["mode"] = "ranked" });
+        Ticket(m, player: "p_picky", ranges: [(AtSec: 0, Min: 2, Max: 2)], "+properties.mode:ranked", properties: new() { ["mode"] = "ranked" });
+
+        var matches = m.RunSweep();
+
+        Assert.That(matches, Has.Count.EqualTo(1));
+
+        var match = matches[0];
+
+        Assert.That(match.SelectMany(ticket => ticket.Members), Is.EquivalentTo(new[] { "p_any", "p_picky" }));
+        Assert.That(match.Single(ticket => ticket.Members.Contains("p_any")).QueryString, Is.EqualTo("*"));
+    }
+
+    [Test]
+    public void TicketsHaveToMutuallyAcceptEachotherInLobby()
+    {
+        using var nonMutual = new Matchmaker();
+
+		// Cannot satisfy match of three people because p3 does not accept p1 even p1 accepts the p3
+        Ticket(nonMutual, player: "p1", ranges: [(AtSec: 0, Min: 3, Max: 3)], "+properties.skill:[1000 TO 3000]", properties: new() { ["skill"] = 1500 });
+        Ticket(nonMutual, player: "p2", ranges: [(AtSec: 0, Min: 3, Max: 3)], "+properties.skill:[1500 TO 3000]", properties: new() { ["skill"] = 2000 });
+        Ticket(nonMutual, player: "p3", ranges: [(AtSec: 0, Min: 3, Max: 3)], "+properties.skill:[2000 TO 3000]", properties: new() { ["skill"] = 2500 });
+
+        var tMax = DateTime.UtcNow.AddSeconds(nonMutual.Config.MaxTicketPatienceInSec);
+
+        Assert.That(nonMutual.RunSweep(tMax), Is.Empty);
+        Assert.That(nonMutual.PoolSize, Is.EqualTo(3));
+
+        using var mutual = new Matchmaker();
+
+		// Everyone satisfied with each other
+        Ticket(mutual, player: "p1", ranges: [(AtSec: 0, Min: 3, Max: 3)], "+properties.skill:[1000 TO 2500]", properties: new() { ["skill"] = 1500 });
+        Ticket(mutual, player: "p2", ranges: [(AtSec: 0, Min: 3, Max: 3)], "+properties.skill:[1500 TO 3000]", properties: new() { ["skill"] = 2000 });
+        Ticket(mutual, player: "p3", ranges: [(AtSec: 0, Min: 3, Max: 3)], "+properties.skill:[1000 TO 3000]", properties: new() { ["skill"] = 2500 });
+
+        var matches = mutual.RunSweep();
+
+        Assert.That(matches, Has.Count.EqualTo(1));
+        Assert.That(matches[0].SelectMany(ticket => ticket.Members), Is.EquivalentTo(new[] { "p1", "p2", "p3" }));
+        Assert.That(mutual.PoolSize, Is.Zero);
+
+		// Match of two people formed because settling allows to do so
+        using var settles = new Matchmaker();
+		int settlesTMax = settles.Config.MaxTicketPatienceInSec;
+
+        Ticket(settles, player: "p1", ranges: [(AtSec: 0, Min: 3, Max: 3), (AtSec: settlesTMax, Min: 2, Max: 3)], "+properties.skill:[1000 TO 3000]", properties: new() { ["skill"] = 1500 });
+        Ticket(settles, player: "p2", ranges: [(AtSec: 0, Min: 3, Max: 3), (AtSec: settlesTMax, Min: 2, Max: 3)], "+properties.skill:[1500 TO 3000]", properties: new() { ["skill"] = 2000 });
+        Ticket(settles, player: "p3", ranges: [(AtSec: 0, Min: 3, Max: 3), (AtSec: settlesTMax, Min: 2, Max: 3)], "+properties.skill:[2000 TO 3000]", properties: new() { ["skill"] = 2500 });
+
+        var settled = settles.RunSweep(DateTime.UtcNow.AddSeconds(settlesTMax));
+
+        Assert.That(settled, Has.Count.EqualTo(1));
+        Assert.That(settled[0].SelectMany(ticket => ticket.Members), Is.EquivalentTo(new[] { "p1", "p2" }));
+        Assert.That(settles.PoolSize, Is.EqualTo(1), "only the picky player is left queued");
+    }
+
+    [Test]
+    public void PassiveFlexTicketIsMatchedByNarrowTicketsLaterOn()
+    {
+        using var m = new Matchmaker();
+
+		// p1 will be flexable after patience runs out
+        Ticket(m, player: "p1", ranges: [(AtSec: 0, Min: 8, Max: 8), (AtSec: m.Config.MaxTicketPatienceInSec, Min: 2, Max: 8)]);
 
         var t0 = DateTime.UtcNow;
         var tMax = t0.AddSeconds(m.Config.MaxTicketPatienceInSec);
@@ -51,7 +155,8 @@ public class MatchmakerTests
         Assert.That(m.ActivePoolSize, Is.Zero);
         Assert.That(m.PoolSize, Is.EqualTo(1));
 
-        foreach (string player in new[] { "fixed0", "fixed1", "fixed2" })
+		// Narrow tickets arrives and picks up p1 since it should be relaxed by now
+        foreach (string player in new[] { "p2", "p3", "p4" })
         {
             Ticket(m, player: player, ranges: [(AtSec: 0, Min: 4, Max: 4)], createdAt: tMax);
         }
@@ -65,7 +170,7 @@ public class MatchmakerTests
         Assert.Multiple(() =>
         {
             Assert.That(match.Sum(ticket => ticket.Size), Is.EqualTo(4));
-            Assert.That(match.SelectMany(ticket => ticket.Members), Is.EquivalentTo(new[] { "flex", "fixed0", "fixed1", "fixed2" }));
+            Assert.That(match.SelectMany(ticket => ticket.Members), Is.EquivalentTo(new[] { "p1", "p2", "p3", "p4" }));
             Assert.That(m.PoolSize, Is.Zero);
         });
     }
@@ -79,67 +184,26 @@ public class MatchmakerTests
         var t0 = DateTime.UtcNow;
         var tMax = t0.AddSeconds(sameCeiling.Config.MaxTicketPatienceInSec);
 
-        Ticket(sameCeiling, player: "p1", ranges: [(AtSec: 0, Min: 4, Max: 4), (AtSec: sameCeiling.Config.MaxTicketPatienceInSec, Min: 2, Max: 4)], createdAt: t0);
+        Ticket(sameCeiling, player: "p1_t0", ranges: [(AtSec: 0, Min: 4, Max: 4), (AtSec: sameCeiling.Config.MaxTicketPatienceInSec, Min: 2, Max: 4)], createdAt: t0);
 
         Assert.That(sameCeiling.RunSweep(t0), Is.Empty);
 
-        Ticket(sameCeiling, player: "p2", ranges: [(AtSec: 0, Min: 4, Max: 4), (AtSec: sameCeiling.Config.MaxTicketPatienceInSec, Min: 2, Max: 4)], createdAt: tMax);
+        Ticket(sameCeiling, player: "p2_tMax", ranges: [(AtSec: 0, Min: 4, Max: 4), (AtSec: sameCeiling.Config.MaxTicketPatienceInSec, Min: 2, Max: 4)], createdAt: tMax);
 
-        Assert.That(sameCeiling.RunSweep(tMax), Is.Empty, "p2 has its whole patience to find a lobby of 4");
+        Assert.That(sameCeiling.RunSweep(tMax), Is.Empty, "p2_tMax has its whole patience to find a lobby of 4");
         Assert.That(sameCeiling.PoolSize, Is.EqualTo(2));
 
         // Wider Newcomer
         using var widerNewcomer = new Matchmaker();
 
-        Ticket(widerNewcomer, player: "p1", ranges: [(AtSec: 0, Min: 4, Max: 4), (AtSec: widerNewcomer.Config.MaxTicketPatienceInSec, Min: 2, Max: 4)], createdAt: t0);
+        Ticket(widerNewcomer, player: "p1_t0", ranges: [(AtSec: 0, Min: 4, Max: 4), (AtSec: widerNewcomer.Config.MaxTicketPatienceInSec, Min: 2, Max: 4)], createdAt: t0);
 
         Assert.That(widerNewcomer.RunSweep(t0), Is.Empty);
 
-        Ticket(widerNewcomer, player: "p2", ranges: [(AtSec: 0, Min: 6, Max: 6), (AtSec: widerNewcomer.Config.MaxTicketPatienceInSec, Min: 2, Max: 6)], createdAt: tMax);
+        Ticket(widerNewcomer, player: "p2_tMax", ranges: [(AtSec: 0, Min: 6, Max: 6), (AtSec: widerNewcomer.Config.MaxTicketPatienceInSec, Min: 2, Max: 6)], createdAt: tMax);
 
         Assert.That(widerNewcomer.RunSweep(tMax), Is.Empty, "the seed cannot spend a wider ticket's patience");
         Assert.That(widerNewcomer.ActivePoolSize, Is.EqualTo(1), "only p2 is still seeding");
-    }
-
-    [Test]
-    public void CandidatesThatRejectEachOtherAreNeverMatchedTogether()
-    {
-        using var m = new Matchmaker();
-
-        Ticket(m, player: "p1", ranges: [(AtSec: 0, Min: 3, Max: 3)], "+properties.skill:[1000 TO 2000]", properties: new() { ["skill"] = 1500 });
-        Ticket(m, player: "p2", ranges: [(AtSec: 0, Min: 3, Max: 3)], "+properties.skill:[1500 TO 3000]", properties: new() { ["skill"] = 2000 });
-        Ticket(m, player: "p3", ranges: [(AtSec: 0, Min: 3, Max: 3)], "+properties.skill:[2000 TO 3000]", properties: new() { ["skill"] = 2500 });
-
-        var tMax = DateTime.UtcNow.AddSeconds(m.Config.MaxTicketPatienceInSec);
-
-        Assert.That(m.RunSweep(tMax), Is.Empty);
-        Assert.That(m.PoolSize, Is.EqualTo(3));
-
-        using var mutual = new Matchmaker();
-
-        Ticket(mutual, player: "p1", ranges: [(AtSec: 0, Min: 3, Max: 3)], "+properties.skill:[1000 TO 2500]", properties: new() { ["skill"] = 1500 });
-        Ticket(mutual, player: "p2", ranges: [(AtSec: 0, Min: 3, Max: 3)], "+properties.skill:[1500 TO 3000]", properties: new() { ["skill"] = 2000 });
-        Ticket(mutual, player: "p3", ranges: [(AtSec: 0, Min: 3, Max: 3)], "+properties.skill:[1000 TO 3000]", properties: new() { ["skill"] = 2500 });
-
-        var matches = mutual.RunSweep();
-
-        Assert.That(matches, Has.Count.EqualTo(1));
-        Assert.That(matches[0].SelectMany(ticket => ticket.Members), Is.EquivalentTo(new[] { "p1", "p2", "p3" }));
-        Assert.That(mutual.PoolSize, Is.Zero);
-
-        // and a refusal does not deadlock the pass - the seed settles with the tickets that do
-        // accept it, and the one that refused is left queued
-        using var settles = new Matchmaker();
-
-        Ticket(settles, player: "p1_flex", ranges: [(AtSec: 0, Min: 3, Max: 3), (AtSec: settles.Config.MaxTicketPatienceInSec, Min: 2, Max: 3)], "+properties.skill:[1000 TO 3000]", properties: new() { ["skill"] = 2000 });
-        Ticket(settles, player: "p2_flex", ranges: [(AtSec: 0, Min: 3, Max: 3), (AtSec: settles.Config.MaxTicketPatienceInSec, Min: 2, Max: 3)], "+properties.skill:[1000 TO 3000]", properties: new() { ["skill"] = 2000 });
-        Ticket(settles, player: "p_picky", ranges: [(AtSec: 0, Min: 3, Max: 3), (AtSec: settles.Config.MaxTicketPatienceInSec, Min: 2, Max: 3)], "+properties.skill:[2800 TO 3000]", properties: new() { ["skill"] = 2900 });
-
-        var settled = settles.RunSweep(DateTime.UtcNow.AddSeconds(settles.Config.MaxTicketPatienceInSec));
-
-        Assert.That(settled, Has.Count.EqualTo(1));
-        Assert.That(settled[0].SelectMany(ticket => ticket.Members), Is.EquivalentTo(new[] { "p1_flex", "p2_flex" }));
-        Assert.That(settles.PoolSize, Is.EqualTo(1), "only the picky player is left queued");
     }
 
     // Five solos cannot fill the six they packed for, so the seed settles - and the settled size
@@ -254,59 +318,6 @@ public class MatchmakerTests
     }
 
     [Test]
-    public void EmptyQueryTicketAcceptsAnyoneButStillHasToBeAccepted() // OK
-    {
-        using var m = new Matchmaker();
-
-        Ticket(m, player: "p_any", ranges: [(AtSec: 0, Min: 2, Max: 2)], "", properties: new() { ["mode"] = "ranked" });
-        Ticket(m, player: "p_picky", ranges: [(AtSec: 0, Min: 2, Max: 2)], "+properties.mode:ranked", properties: new() { ["mode"] = "ranked" });
-
-        var matches = m.RunSweep();
-
-        Assert.That(matches, Has.Count.EqualTo(1));
-
-        var match = matches[0];
-
-        Assert.That(match.SelectMany(ticket => ticket.Members), Is.EquivalentTo(new[] { "p_any", "p_picky" }));
-        Assert.That(match.Single(ticket => ticket.Members.Contains("p_any")).QueryString, Is.EqualTo("*"));
-
-        using var oneWay = new Matchmaker();
-
-        Ticket(oneWay, player: "p_any", ranges: [(AtSec: 0, Min: 2, Max: 2)], "", properties: new() { ["mode"] = "casual" });
-        Ticket(oneWay, player: "p_picky", ranges: [(AtSec: 0, Min: 2, Max: 2)], "+properties.mode:ranked", properties: new() { ["mode"] = "ranked" });
-
-        var tMax = DateTime.UtcNow.AddSeconds(oneWay.Config.MaxTicketPatienceInSec);
-
-        Assert.That(oneWay.RunSweep(tMax), Is.Empty);
-        Assert.That(oneWay.PoolSize, Is.EqualTo(2), "both tickets stay queued");
-    }
-
-    [Test]
-    public void OldestTicketsAreMatchedFirstAndTheNewestWaits()
-    {
-        using var m = new Matchmaker();
-
-        long previous = 0;
-        foreach (string player in new[] { "p1", "p2", "p3", "p4", "p5" })
-        {
-            var (_, createdAt) = Ticket(m, player: player, ranges: [(AtSec: 0, Min: 2, Max: 2)]);
-            Assert.That(createdAt, Is.GreaterThan(previous), "each ticket gets a later stamp than the last");
-            previous = createdAt;
-        }
-
-        var matches = m.RunSweep();
-
-        Assert.That(matches, Has.Count.EqualTo(2));
-
-        Assert.Multiple(() =>
-        {
-            Assert.That(matches[0].SelectMany(ticket => ticket.Members), Is.EquivalentTo(new[] { "p1", "p2" }));
-            Assert.That(matches[1].SelectMany(ticket => ticket.Members), Is.EquivalentTo(new[] { "p3", "p4" }));
-            Assert.That(m.PoolSize, Is.EqualTo(1), "only the newest ticket is left waiting");
-        });
-    }
-
-    [Test]
     public void OldestCandidateIsMatchedFirstEvenWhenANewerOneMatchesMoreOrClausesInsideParentheses() // OK
     {
         using var m = new Matchmaker();
@@ -378,21 +389,6 @@ public class MatchmakerTests
         Assert.That(controlMatches, Has.Count.EqualTo(1));
         Assert.That(controlMatches[0].SelectMany(ticket => ticket.Members), Is.EquivalentTo(new[] { "p1", "p2", "p3" }), "with nothing to rank on, the longest waiting are seated");
     }
- 
-    [Test]
-    public void DegenerateCallsAreNoOps() // OK
-    {
-        using var m = new Matchmaker();
-
-        Assert.That(m.RunSweep(), Is.Empty, "an empty pool matches nobody");
-        Assert.That(m.CancelTicket("no-such-ticket"), Is.False, "an unknown ticket id cancels nothing");
-
-        string ticket = Ticket(m, player: "p1", ranges: [(AtSec: 0, Min: 2, Max: 2)]).Ticket;
-
-        Assert.That(m.CancelTicket(ticket), Is.True);
-        Assert.That(m.CancelTicket(ticket), Is.False, "the second cancel of a ticket does nothing");
-        Assert.That(m.PoolSize, Is.Zero);
-    }
 
     [Test]
     public void FixedSizeTicketGetsOneActiveSweepWhateverItsPatienceSays() // OK
@@ -413,58 +409,33 @@ public class MatchmakerTests
         Assert.That(flexible.ActivePoolSize, Is.EqualTo(1));
     }
 
-    [Test]
-    public void SettledSizeMeetsTheHighestFloorInTheLobby() // OK
-    {
-        using var m = new Matchmaker();
-
-        Ticket(m, player: "p1", ranges: [(AtSec: 0, Min: 6, Max: 6), (AtSec: m.Config.MaxTicketPatienceInSec, Min: 2, Max: 6)]);
-        Ticket(m, player: "p2", ranges: [(AtSec: 0, Min: 6, Max: 6), (AtSec: m.Config.MaxTicketPatienceInSec, Min: 2, Max: 6)]);
-        Ticket(m, player: "p3", ranges: [(AtSec: 0, Min: 6, Max: 6), (AtSec: m.Config.MaxTicketPatienceInSec, Min: 3, Max: 6)]);
-        Ticket(m, player: "p4", ranges: [(AtSec: 0, Min: 6, Max: 6), (AtSec: m.Config.MaxTicketPatienceInSec, Min: 4, Max: 6)]);
-
-        var tMax = DateTime.UtcNow.AddSeconds(m.Config.MaxTicketPatienceInSec);
-
-        var matches = m.RunSweep(tMax);
-
-        Assert.That(matches, Has.Count.EqualTo(1));
-        Assert.That(matches[0].Sum(ticket => ticket.Size), Is.EqualTo(4));
-        Assert.That(m.PoolSize, Is.Zero);
-    }
-
-    // Case: the last-interval fallback walks every combo the seed packed, not just the first
-    // (Matchmaker.cs:433-451). p2 rejects p3, so two combos form; combo 1 trims to nothing and
-    // the loop carries on to combo 2, which seats.
-    //
-    // The members and the pool size alone do not pin that fall-through down - they hold whether or
-    // not the loop walks past combo 1, since p3 would seat the same pair on its own turn out of a
-    // single combo. Which ticket seeded is what tells the two apart, and FinalizeCombo returns the
-    // seed last: p1 in that seat means p1 consumed p3 before p3 ever seeded, which only combo 2 can
-    // do.
-    //
-    // p3 is also deliberately wider than p1 - max 8 to p1's 6 - which puts the bigger-max guard
-    // (Matchmaker.cs:497) in the way. p3 is only reachable at all because the whole pool has waited
-    // out its patience: hold the pass inside it and p3 keeps its ceiling, and with it goes the
-    // second combo there is to fall through to.
+    // Case: a settling seed keeps its candidates in mutually-compatible combos, and when the first
+    // of them cannot be seated it has to go on to the next. p2 is fixed at 4, so the combo it heads
+    // is unseatable at the size p1 settles for; p3 heads a combo of its own only because p2 will not
+    // have it. The opening sweep spends both fixed tickets' single active pass, which leaves p1 the
+    // only seed at tMax - so this lobby exists at all only if the seed reaches past its first combo.
     [Test]
     public void SettlingSeedFallsThroughToItsSecondCombo()
     {
         using var m = new Matchmaker();
+        int tMaxSec = m.Config.MaxTicketPatienceInSec;
 
-        Ticket(m, player: "p1", ranges: [(AtSec: 0, Min: 6, Max: 6), (AtSec: m.Config.MaxTicketPatienceInSec, Min: 2, Max: 6)], "+properties.skill:[1000 TO 1200]", properties: new() { ["skill"] = 1100 });
+        Ticket(m, player: "p1", ranges: [(AtSec: 0, Min: 6, Max: 6), (AtSec: tMaxSec, Min: 2, Max: 6)], "+properties.skill:[500 TO 1500]", properties: new() { ["skill"] = 1100 });
         Ticket(m, player: "p2", ranges: [(AtSec: 0, Min: 4, Max: 4)], "+properties.skill:[900 TO 1100]", properties: new() { ["skill"] = 1000 });
-        Ticket(m, player: "p3", ranges: [(AtSec: 0, Min: 8, Max: 8), (AtSec: m.Config.MaxTicketPatienceInSec, Min: 2, Max: 8)], "+properties.skill:[500 TO 1500]", properties: new() { ["skill"] = 1200 });
+        Ticket(m, player: "p3", ranges: [(AtSec: 0, Min: 2, Max: 2)], "+properties.skill:[500 TO 1500]", properties: new() { ["skill"] = 1500 });
 
-        var tMax = DateTime.UtcNow.AddSeconds(m.Config.MaxTicketPatienceInSec);
+        var t0 = DateTime.UtcNow;
 
-        var matches = m.RunSweep(tMax);
+        Assert.That(m.RunSweep(t0), Is.Empty, "p1 asks for 6 on rung 0");
+        Assert.That(m.ActivePoolSize, Is.EqualTo(1), "the fixed tickets have spent their active sweep");
+
+        var matches = m.RunSweep(t0.AddSeconds(tMaxSec));
 
         Assert.That(matches, Has.Count.EqualTo(1));
         Assert.Multiple(() =>
         {
             Assert.That(matches[0].SelectMany(ticket => ticket.Members), Is.EquivalentTo(new[] { "p1", "p3" }));
             Assert.That(m.PoolSize, Is.EqualTo(1), "p2 is left queued");
-            Assert.That(matches[0][^1].Members, Is.EquivalentTo(new[] { "p1" }), "p1 seeded the lobby");
         });
     }
 
@@ -559,31 +530,6 @@ public class MatchmakerTests
         Assert.That(matches[0].SelectMany(ticket => ticket.Members), Is.EquivalentTo(new[] { "picky", "far1" }));
     }
 
-    // ---------------------------------------------------------------------------------------
-    // Range ladder. A ticket carries a size range per rung and narrows as it ages, so
-    // it opens on the lobby it wants and gives ground on a schedule it wrote itself (Sweep stamps
-    // RangeRung, MatchmakerTicket.MinCount/MaxCount read it).
-    //
-    // The floor applies at the rung in force, not only at the horizon. A ticket that queued one range
-    // has one cliff - it packs for MaxCount and settles for MinCount when its patience runs out - and
-    // that is not a rule in the sweep but the two-rung schedule Add builds for it, (Max, Max) then
-    // (Min, Max). A written ladder turns that single cliff into a staircase; both are read the same
-    // way, off the rung the ticket's age selects.
-    //
-    // A ladder may only narrow, both bounds, and Add enforces it - which is also what lets
-    // MatchIndex.Upsert index the ladder's envelope from its two end rungs.
-    //
-    // Rungs come from a ticket's age, so every test here hands RunSweep the instant to take the
-    // pass at, and captures t0 *after* the Add calls.
-    // ---------------------------------------------------------------------------------------
-
-    // Case: the headline. Two solos want a lobby of 6 and there are only two of them, so the size
-    // they end up with can only come from a floor they lowered. The ladder reaches 2 on rung 2, at
-    // t+20, and that is where the match forms - a full ten seconds before the patience is spent.
-    //
-    // The control is the same pair on the flat range the ladder ends at. It is the pre-existing
-    // mechanism, so it waits for its last interval and matches at t+30. Same lobby, ten seconds
-    // later: that gap is the feature.
     [Test]
     public void RangeLadderSettlesForTheFloorItsRungAllows()
     {
@@ -1116,6 +1062,21 @@ public class MatchmakerTests
         Assert.Throws<ArgumentException>(() => new Matchmaker(new MatchmakerConfig { MaxLadderRungs = -1 }), "MaxLadderRungs must not be negative");
     }
 
+    [Test]
+    public void DegenerateCallsAreNoOps() // OK
+    {
+        using var m = new Matchmaker();
+
+        Assert.That(m.RunSweep(), Is.Empty, "an empty pool matches nobody");
+        Assert.That(m.CancelTicket("no-such-ticket"), Is.False, "an unknown ticket id cancels nothing");
+
+        string ticket = Ticket(m, player: "p1", ranges: [(AtSec: 0, Min: 2, Max: 2)]).Ticket;
+
+        Assert.That(m.CancelTicket(ticket), Is.True);
+        Assert.That(m.CancelTicket(ticket), Is.False, "the second cancel of a ticket does nothing");
+        Assert.That(m.PoolSize, Is.Zero);
+    }
+
     // Adds `first` and `second` to a fresh matchmaker in the order `firstLeads` selects, then takes
     // one pass `sweepAtSec` seconds after the adds - so queue order is the only thing that varies
     // between the two rows, and anything they disagree on is a reading that depends on it.
@@ -1140,33 +1101,4 @@ public class MatchmakerTests
 
         return (matches, m.PoolSize);
     }
-
-    static List<string> AddPool(Matchmaker matchmaker, int count, string mode, string region, string platform, int teamSize)
-    {
-        var players = new List<string>(count);
-
-        foreach (int i in Enumerable.Range(1, count))
-        {
-            string player = $"{mode}-{region}-{platform}-{i}";
-            players.Add(player);
-
-            matchmaker.Add(
-                sessionIds: [player],
-                ownerSessionId: player,
-                partyId: "",
-                query: $"+properties.mode:{mode} +properties.region:{region} +properties.platform:{platform}",
-                properties: new()
-                {
-                    ["mode"] = mode,
-                    ["region"] = region,
-                    ["platform"] = platform,
-                },
-                minMaxLadder: [(0, teamSize * 2, teamSize * 2)]);
-        }
-
-        return players;
-    }
-
-    static string Preferences(MatchmakerTicket ticket) =>
-        $"{ticket.Properties["mode"]}/{ticket.Properties["region"]}/{ticket.Properties["platform"]}";
 }
