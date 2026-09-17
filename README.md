@@ -54,6 +54,7 @@ Sukhoi has full support for Apache Lucene query syntax — `MUST`, `MUST_NOT`, `
 +properties.mode:ranked +(properties.map_dust2:T OR properties.map_inferno:T) // Must be ranked, and up for at least one of my maps
 +properties.mode:ranked +properties.skill:[2950 TO 3050] // skill must be within 50 of mine
 +properties.map:/de_.*|any/ // must have either one of the maps starting with de_* or any
++properties.mode:ranked properties.party:T^10 // must be ranked, strongly prefer players who are in a party
 ```
 
 
