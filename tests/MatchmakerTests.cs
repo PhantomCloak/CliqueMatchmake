@@ -432,16 +432,6 @@ public class MatchmakerTests
         });
     }
 
-    // Case: the candidate guard is the candidate's own floor against the biggest lobby the seed could
-    // build. It is the same test SearchScope prefilters on - and that is exactly why it has to be
-    // repeated here: the prefilter reads the ladder's *envelope*, which for a ticket carrying a
-    // schedule is the floor of its last rung, while the guard reads the rung in force this pass.
-    //
-    // wide is the ticket that falls in the gap. Its envelope reaches down to 2, so the prefilter
-    // hands it over; its rung 0 asks for exactly 6, which narrow could never seat. Without the
-    // guard it takes a seat in narrow's combo, sinks it at FinalizeCombo, and the trim cannot rescue
-    // the rest - narrow is pinned to 3 at rung 0, so a lobby of 2 is below its own floor. Skipping
-    // wide up front leaves the seat for fits2 and the lobby closes at 3.
     [Test]
     public void CandidateStillOnAnOutOfReachRungIsSkippedEvenThoughItsEnvelopeFits()
     {

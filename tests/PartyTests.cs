@@ -3,7 +3,7 @@ namespace Sukhoi.Tests;
 public class PartyTests
 {
     [Test]
-    public void TwoPartiesFillAMatch() // OK
+    public void TwoPartiesFillAMatch()
     {
         using var m = new Matchmaker();
 
@@ -20,7 +20,7 @@ public class PartyTests
     }
 
     [Test]
-    public void PartyAndSolosFillAMatch() // OK
+    public void PartyAndSolosFillAMatch()
     {
         using var m = new Matchmaker();
 
