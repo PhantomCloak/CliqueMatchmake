@@ -9,23 +9,23 @@ public class MatchmakerTests
 
         Ticket(m, player: "wrong-region", ranges: [(AtSec: 0, Min: 2, Max: 2)],
             query: "+properties.mode:casual +properties.region:us-east +properties.platform:pc",
-			properties: new() { ["mode"] = "casual", ["region"] = "us-east", ["platform"] = "pc" });
+            properties: new() { ["mode"] = "casual", ["region"] = "us-east", ["platform"] = "pc" });
 
         Ticket(m, player: "wrong-platform", ranges: [(AtSec: 0, Min: 2, Max: 2)],
             query: "+properties.mode:casual +properties.region:eu-west +properties.platform:console",
-			properties: new() { ["mode"] = "casual", ["region"] = "eu-west", ["platform"] = "console" });
+            properties: new() { ["mode"] = "casual", ["region"] = "eu-west", ["platform"] = "console" });
 
         Ticket(m, player: "wrong-mode", ranges: [(AtSec: 0, Min: 2, Max: 2)],
             query: "+properties.mode:ranked +properties.region:eu-west +properties.platform:pc",
-			properties: new() { ["mode"] = "ranked", ["region"] = "eu-west", ["platform"] = "pc" });
+            properties: new() { ["mode"] = "ranked", ["region"] = "eu-west", ["platform"] = "pc" });
 
         Ticket(m, player: "casual1", ranges: [(AtSec: 0, Min: 2, Max: 2)],
-            query: "+properties.mode:casual +properties.region:eu-west +properties.platform:pc", 
-			properties: new() { ["mode"] = "casual", ["region"] = "eu-west", ["platform"] = "pc" });
+            query: "+properties.mode:casual +properties.region:eu-west +properties.platform:pc",
+            properties: new() { ["mode"] = "casual", ["region"] = "eu-west", ["platform"] = "pc" });
 
         Ticket(m, player: "casual2", ranges: [(AtSec: 0, Min: 2, Max: 2)],
             query: "+properties.mode:casual +properties.region:eu-west +properties.platform:pc",
-			properties: new() { ["mode"] = "casual", ["region"] = "eu-west", ["platform"] = "pc" });
+            properties: new() { ["mode"] = "casual", ["region"] = "eu-west", ["platform"] = "pc" });
 
         var matches = m.RunSweep();
 
@@ -43,7 +43,7 @@ public class MatchmakerTests
     {
         using var nonMutual = new Matchmaker();
 
-		// Cannot satisfy match of three people because p3 does not accept p1 even p1 accepts the p3
+        // Cannot satisfy match of three people because p3 does not accept p1 even p1 accepts the p3
         Ticket(nonMutual, player: "p1", ranges: [(AtSec: 0, Min: 3, Max: 3)], "+properties.skill:[1000 TO 3000]", properties: new() { ["skill"] = 1500 });
         Ticket(nonMutual, player: "p2", ranges: [(AtSec: 0, Min: 3, Max: 3)], "+properties.skill:[1500 TO 3000]", properties: new() { ["skill"] = 2000 });
         Ticket(nonMutual, player: "p3", ranges: [(AtSec: 0, Min: 3, Max: 3)], "+properties.skill:[2000 TO 3000]", properties: new() { ["skill"] = 2500 });
@@ -55,7 +55,7 @@ public class MatchmakerTests
 
         using var mutual = new Matchmaker();
 
-		// Everyone satisfied with each other
+        // Everyone satisfied with each other
         Ticket(mutual, player: "p1", ranges: [(AtSec: 0, Min: 3, Max: 3)], "+properties.skill:[1000 TO 2500]", properties: new() { ["skill"] = 1500 });
         Ticket(mutual, player: "p2", ranges: [(AtSec: 0, Min: 3, Max: 3)], "+properties.skill:[1500 TO 3000]", properties: new() { ["skill"] = 2000 });
         Ticket(mutual, player: "p3", ranges: [(AtSec: 0, Min: 3, Max: 3)], "+properties.skill:[1000 TO 3000]", properties: new() { ["skill"] = 2500 });
@@ -66,9 +66,9 @@ public class MatchmakerTests
         Assert.That(matches[0].SelectMany(ticket => ticket.Members), Is.EquivalentTo(new[] { "p1", "p2", "p3" }));
         Assert.That(mutual.PoolSize, Is.Zero);
 
-		// Match of two people formed because settling allows to do so
+        // Match of two people formed because settling allows to do so
         using var settles = new Matchmaker();
-		int settlesTMax = settles.Config.MaxTicketPatienceInSec;
+        int settlesTMax = settles.Config.MaxTicketPatienceInSec;
 
         Ticket(settles, player: "p1", ranges: [(AtSec: 0, Min: 3, Max: 3), (AtSec: settlesTMax, Min: 2, Max: 3)], "+properties.skill:[1000 TO 3000]", properties: new() { ["skill"] = 1500 });
         Ticket(settles, player: "p2", ranges: [(AtSec: 0, Min: 3, Max: 3), (AtSec: settlesTMax, Min: 2, Max: 3)], "+properties.skill:[1500 TO 3000]", properties: new() { ["skill"] = 2000 });
@@ -143,7 +143,7 @@ public class MatchmakerTests
         Assert.That(match.Single(ticket => ticket.Members.Contains("p_any")).QueryString, Is.EqualTo("*"));
     }
 
-	[Test]
+    [Test]
     public void FixedSizeTicketGetsOneActiveSweepWhateverItsPatienceSays()
     {
         using var m = new Matchmaker();
@@ -215,7 +215,7 @@ public class MatchmakerTests
             Assert.That(widerNewcomer.PoolSize, Is.Zero);
         });
     }
-    
+
     [Test]
     public void OldestCandidateIsMatchedFirstEvenWhenANewerOneMatchesMoreOrClausesInsideParentheses()
     {
@@ -289,7 +289,7 @@ public class MatchmakerTests
         Assert.That(controlMatches[0].SelectMany(ticket => ticket.Members), Is.EquivalentTo(new[] { "p1", "p2", "p3" }), "with nothing to rank on, the longest waiting are seated");
     }
 
-	[Test]
+    [Test]
     public void TicketQueuedLongAgoStartsOnTheRungItsAgeEarns()
     {
         using var m = new Matchmaker(new MatchmakerConfig { MaxTicketPatienceInSec = 30 });
@@ -342,7 +342,7 @@ public class MatchmakerTests
         });
     }
 
-	[Test]
+    [Test]
     public void RangeLadderSettlesForTheFloorItsRungAllows()
     {
         using var m = new Matchmaker(new MatchmakerConfig { MaxTicketPatienceInSec = 30 });
@@ -386,7 +386,7 @@ public class MatchmakerTests
         Ticket(m, player: "p1", ranges: [(AtSec: 0, Min: 4, Max: 4), (AtSec: m.Config.MaxTicketPatienceInSec, Min: 2, Max: 4)]);
         Ticket(m, player: "p2", ranges: [(AtSec: 0, Min: 4, Max: 4), (AtSec: m.Config.MaxTicketPatienceInSec, Min: 2, Max: 4)]);
 
-		// retire early at t:10
+        // retire early at t:10
         Ticket(m, player: "p3", ranges: [(AtSec: 0, Min: 6, Max: 6), (AtSec: 10, Min: 3, Max: 3)]);
 
         var t0 = DateTime.UtcNow;
@@ -533,7 +533,7 @@ public class MatchmakerTests
         });
     }
 
-	[Test]
+    [Test]
     public void CandidateWhoseFloorTheTrimWouldUndercutIsDroppedBeforeTheTrim()
     {
         using var m = new Matchmaker();
@@ -556,7 +556,7 @@ public class MatchmakerTests
         });
     }
 
-	// Five solos cannot fill the six they packed for, so the seed settles - and the settled size
+    // Five solos cannot fill the six they packed for, so the seed settles - and the settled size
     // still has to land on the count multiple. TrimToCountMultiple gives up the newest group
     // summing to the overshoot, so the longest waiting keep their seats. The arithmetic is the
     // whole of the difference between the rows: an overshoot of one costs one ticket, an overshoot
