@@ -7,8 +7,8 @@ public class PartyTests
     {
         using var m = new Matchmaker();
 
-        Party(m, "pA", ["p1", "p2", "p3"], [(0, 6, 6), (m.Config.MaxTicketPatienceInSec, 3, 6)]);
-        Party(m, "pB", ["p4", "p5", "p6"], [(0, 6, 6), (m.Config.MaxTicketPatienceInSec, 3, 6)]);
+        Party(m, partyId: "pA", members: ["p1", "p2", "p3"], ranges: [(0, 6, 6), (m.Config.MaxTicketPatienceInSec, 3, 6)]);
+        Party(m, partyId: "pB", members: ["p4", "p5", "p6"], ranges: [(0, 6, 6), (m.Config.MaxTicketPatienceInSec, 3, 6)]);
 
         var matches = m.RunSweep();
 
@@ -24,9 +24,9 @@ public class PartyTests
     {
         using var m = new Matchmaker();
 
-        Party(m, "pA", ["a1", "a2", "a3"], [(0, 4, 4)]);
-        Ticket(m, "s1", [(0, 4, 4)]);
-        Ticket(m, "s2", [(0, 4, 4)]);
+        Party(m, partyId: "pA", members: ["p1", "p2", "p3"], ranges: [(0, 4, 4)]);
+        Ticket(m, player: "p4", ranges: [(0, 4, 4)]);
+        Ticket(m, player: "p5", ranges: [(0, 4, 4)]);
 
         var matches = m.RunSweep();
 
@@ -34,19 +34,19 @@ public class PartyTests
         Assert.That(matches[0].Sum(ticket => ticket.Size), Is.EqualTo(4));
 
         var seated = matches[0].SelectMany(ticket => ticket.Members).ToList();
-        Assert.That(seated, Does.Contain("a1").And.Contain("a2").And.Contain("a3"));
-        Assert.That(seated.Count(player => player.StartsWith("s")), Is.EqualTo(1));
+        Assert.That(seated, Does.Contain("p1").And.Contain("p2").And.Contain("p3"));
+        Assert.That(seated.Count(player => player is "p4" or "p5"), Is.EqualTo(1));
 
         Assert.That(m.PoolSize, Is.EqualTo(1));
     }
 
     [Test]
-    public void SamePartyTicketsDoNotMatchEachOther() // OK
+    public void SamePartyTicketsDoNotMatchEachOther()
     {
         using var m = new Matchmaker();
 
-        Party(m, "pA", ["a1", "a2"], [(0, 4, 4)]);
-        Party(m, "pA", ["a1", "a2"], [(0, 4, 4)]);
+        Party(m, partyId: "pA", members: ["p1", "p2"], ranges: [(0, 4, 4)]);
+        Party(m, partyId: "pA", members: ["p1", "p2"], ranges: [(0, 4, 4)]);
 
         var t0 = DateTime.UtcNow;
 
@@ -59,9 +59,9 @@ public class PartyTests
     {
         using var m = new Matchmaker();
 
-        Party(m, "pA", ["a1", "a2", "a3"], [(0, 4, 4)]);
-        Party(m, "pB", ["b1", "b2", "b3"], [(0, 4, 4)]);
-        Ticket(m, "s1", [(0, 4, 4)]);
+        Party(m, partyId: "pA", members: ["p1", "p2", "p3"], ranges: [(0, 4, 4)]);
+        Party(m, partyId: "pB", members: ["p4", "p5", "p6"], ranges: [(0, 4, 4)]);
+        Ticket(m, player: "p7", ranges: [(0, 4, 4)]);
 
         var t0 = DateTime.UtcNow;
 
@@ -86,8 +86,8 @@ public class PartyTests
         const int Patience = 30;
         using var m = new Matchmaker(new MatchmakerConfig { MaxTicketPatienceInSec = Patience });
 
-        Party(m, "pA", ["a1", "a2", "a3"], [(0, 8, 8), (m.Config.MaxTicketPatienceInSec, 4, 8)]);
-        Party(m, "pB", ["b1", "b2"], [(0, 8, 8), (m.Config.MaxTicketPatienceInSec, 4, 8)]);
+        Party(m, partyId: "pA", members: ["p1", "p2", "p3"], ranges: [(0, 8, 8), (m.Config.MaxTicketPatienceInSec, 4, 8)]);
+        Party(m, partyId: "pB", members: ["p4", "p5"], ranges: [(0, 8, 8), (m.Config.MaxTicketPatienceInSec, 4, 8)]);
 
         var t0 = DateTime.UtcNow;
 
@@ -109,7 +109,7 @@ public class PartyTests
     {
         using var m = new Matchmaker();
 
-        Party(m, "pA", ["a1", "a2", "a3", "a4"], [(0, 6, 6), (m.Config.MaxTicketPatienceInSec, 4, 6)]);
+        Party(m, partyId: "pA", members: ["p1", "p2", "p3", "p4"], ranges: [(0, 6, 6), (m.Config.MaxTicketPatienceInSec, 4, 6)]);
 
         var t0 = DateTime.UtcNow;
         var tMax = t0.AddSeconds(m.Config.MaxTicketPatienceInSec);
@@ -119,7 +119,7 @@ public class PartyTests
 
         using var control = new Matchmaker();
 
-        Party(control, "pA", ["a1", "a2", "a3", "a4"], [(0, 2, 6)]);
+        Party(control, partyId: "pA", members: ["p1", "p2", "p3", "p4"], ranges: [(0, 2, 6)]);
 
         Assert.That(control.RunSweep(DateTime.UtcNow), Has.Count.EqualTo(1));
     }
@@ -129,9 +129,9 @@ public class PartyTests
     {
         using var m = new Matchmaker();
 
-        Party(m, "pA", ["a1", "a2", "a3", "a4"], [(0, 2, 4)]);
-        Ticket(m, "s1", [(0, 2, 6)]);
-        Ticket(m, "s2", [(0, 2, 6)]);
+        Party(m, partyId: "pA", members: ["p1", "p2", "p3", "p4"], ranges: [(0, 2, 4)]);
+        Ticket(m, player: "p5", ranges: [(0, 2, 6)]);
+        Ticket(m, player: "p6", ranges: [(0, 2, 6)]);
 
         var t0 = DateTime.UtcNow;
         var matches = new List<List<MatchmakerTicket>>();
@@ -143,16 +143,16 @@ public class PartyTests
         {
             var members = match.SelectMany(ticket => ticket.Members).ToList();
 
-            if (!members.Any(member => member.StartsWith("a")))
+            if (!match.Any(ticket => ticket.PartyId == "pA"))
             {
                 continue;
             }
 
-            Assert.That(members, Is.EquivalentTo(new[] { "a1", "a2", "a3", "a4" }),
+            Assert.That(members, Is.EquivalentTo(new[] { "p1", "p2", "p3", "p4" }),
                 "a party at its ceiling leaves no seat for anyone else to take");
         }
 
-        Assert.That(matches.Any(match => match.SelectMany(ticket => ticket.Members).Contains("s1")),
+        Assert.That(matches.Any(match => match.SelectMany(ticket => ticket.Members).Contains("p5")),
             Is.True, "the pool is live: the solos seat each other while the party is passed over");
     }
 
@@ -163,8 +163,8 @@ public class PartyTests
         const int TeamSize = 5;
 
         var solos = AddPartyPrioritySolos(m, count: 10, teamSize: TeamSize, boosted: true);
-        AddPartyPriorityTicket(m, partyId: "pA", members: ["a1", "a2"], teamSize: TeamSize, boosted: true);
-        AddPartyPriorityTicket(m, partyId: "pB", members: ["b1", "b2", "b3"], teamSize: TeamSize, boosted: true);
+        AddPartyPriorityTicket(m, partyId: "pA", members: ["p11", "p12"], teamSize: TeamSize, boosted: true);
+        AddPartyPriorityTicket(m, partyId: "pB", members: ["p13", "p14", "p15"], teamSize: TeamSize, boosted: true);
 
         var matches = m.RunSweep();
 
@@ -175,35 +175,35 @@ public class PartyTests
 
         Assert.That(match.Where(ticket => ticket.PartyId != "").Select(ticket => ticket.PartyId), Is.EquivalentTo(new[] { "pA", "pB" }));
 
-        Assert.That(match.SelectMany(ticket => ticket.Members), Is.EquivalentTo(solos.Take(5).Concat(new[] { "a1", "a2", "b1", "b2", "b3" })));
+        Assert.That(match.SelectMany(ticket => ticket.Members), Is.EquivalentTo(solos.Take(5).Concat(new[] { "p11", "p12", "p13", "p14", "p15" })));
 
-        Assert.That(m.PoolSize, Is.EqualTo(5), "solo6..solo10 queued before either party and should have lost their seats to it");
+        Assert.That(m.PoolSize, Is.EqualTo(5), "p6..p10 queued before either party and should have lost their seats to it");
         Assert.That(m.ActivePoolSize, Is.Zero);
     }
 
     [Test]
-    public void FullPartyMatchingOnItsOwnCancelsThePartysOtherTickets() // OK
+    public void FullPartyMatchingOnItsOwnCancelsThePartysOtherTickets()
     {
         using var m = new Matchmaker();
 
-        Party(m, "pA", ["a1", "a2", "a3", "a4"], [(0, 4, 4)], mode: "ranked");
-        Party(m, "pA", ["a1", "a2", "a3", "a4"], [(0, 8, 8), (m.Config.MaxTicketPatienceInSec, 4, 8)], mode: "casual");
-        Party(m, "pC", ["c1", "c2", "c3", "c4"], [(0, 8, 8), (m.Config.MaxTicketPatienceInSec, 4, 8)], mode: "casual");
+        Party(m, partyId: "pA", members: ["p1", "p2", "p3", "p4"], ranges: [(0, 4, 4)], query: "+properties.mode:ranked", properties: new() { ["mode"] = "ranked" });
+        Party(m, partyId: "pA", members: ["p1", "p2", "p3", "p4"], ranges: [(0, 8, 8), (m.Config.MaxTicketPatienceInSec, 4, 8)], query: "+properties.mode:casual", properties: new() { ["mode"] = "casual" });
+        Party(m, partyId: "pC", members: ["p5", "p6", "p7", "p8"], ranges: [(0, 8, 8), (m.Config.MaxTicketPatienceInSec, 4, 8)], query: "+properties.mode:casual", properties: new() { ["mode"] = "casual" });
 
         var matches = m.RunSweep();
 
         Assert.That(matches, Has.Count.EqualTo(1));
-        Assert.That(matches[0].SelectMany(ticket => ticket.Members), Is.EquivalentTo(new[] { "a1", "a2", "a3", "a4" }));
+        Assert.That(matches[0].SelectMany(ticket => ticket.Members), Is.EquivalentTo(new[] { "p1", "p2", "p3", "p4" }));
         Assert.That((string)matches[0][0].Properties["mode"], Is.EqualTo("ranked"));
 
         Assert.That(m.PoolSize, Is.EqualTo(1));
 
-        Party(m, "pN", ["n1", "n2", "n3", "n4"], [(0, 8, 8), (m.Config.MaxTicketPatienceInSec, 4, 8)], mode: "casual");
+        Party(m, partyId: "pN", members: ["p9", "p10", "p11", "p12"], ranges: [(0, 8, 8), (m.Config.MaxTicketPatienceInSec, 4, 8)], query: "+properties.mode:casual", properties: new() { ["mode"] = "casual" });
 
         var secondWave = m.RunSweep();
 
         Assert.That(secondWave, Has.Count.EqualTo(1));
-        Assert.That(secondWave[0].SelectMany(ticket => ticket.Members), Is.EquivalentTo(new[] { "c1", "c2", "c3", "c4", "n1", "n2", "n3", "n4" }));
+        Assert.That(secondWave[0].SelectMany(ticket => ticket.Members), Is.EquivalentTo(new[] { "p5", "p6", "p7", "p8", "p9", "p10", "p11", "p12" }));
         Assert.That(m.PoolSize, Is.Zero);
     }
 
@@ -212,23 +212,23 @@ public class PartyTests
     {
         using var m = new Matchmaker();
 
-        string ranked = Ticket(m, "p1", [(0, 2, 2)], "+properties.mode:ranked", new() { ["mode"] = "ranked" }).Ticket;
-        Ticket(m, "p1", [(0, 2, 2)], "+properties.mode:casual", new() { ["mode"] = "casual" });
-        Ticket(m, "p1", [(0, 2, 2)], "+properties.mode:arcade", new() { ["mode"] = "arcade" });
+        string ranked = Ticket(m, player: "p1", ranges: [(0, 2, 2)], query: "+properties.mode:ranked", properties: new() { ["mode"] = "ranked" }).Ticket;
+        Ticket(m, player: "p1", ranges: [(0, 2, 2)], query: "+properties.mode:casual", properties: new() { ["mode"] = "casual" });
+        Ticket(m, player: "p1", ranges: [(0, 2, 2)], query: "+properties.mode:arcade", properties: new() { ["mode"] = "arcade" });
 
         Assert.That(m.PoolSize, Is.EqualTo(3));
         Assert.That(m.CancelTicket(ranked), Is.True);
         Assert.That(m.PoolSize, Is.EqualTo(2));
 
-        Ticket(m, "rankedPartner", [(0, 2, 2)], "+properties.mode:ranked", new() { ["mode"] = "ranked" });
+        Ticket(m, player: "p2", ranges: [(0, 2, 2)], query: "+properties.mode:ranked", properties: new() { ["mode"] = "ranked" });
         Assert.That(m.RunSweep(), Is.Empty);
 
-        Ticket(m, "casualPartner", [(0, 2, 2)], "+properties.mode:casual", new() { ["mode"] = "casual" });
+        Ticket(m, player: "p3", ranges: [(0, 2, 2)], query: "+properties.mode:casual", properties: new() { ["mode"] = "casual" });
 
         var matches = m.RunSweep();
 
         Assert.That(matches, Has.Count.EqualTo(1));
-        Assert.That(matches[0].SelectMany(ticket => ticket.Members), Is.EquivalentTo(new[] { "p1", "casualPartner" }));
+        Assert.That(matches[0].SelectMany(ticket => ticket.Members), Is.EquivalentTo(new[] { "p1", "p3" }));
     }
 
     [Test]
@@ -236,30 +236,30 @@ public class PartyTests
     {
         using var m = new Matchmaker();
 
-        Party(m, "pA", ["a1", "a2"], [(0, 4, 4)], mode: "ranked");
-        Party(m, "pA", ["a1", "a2"], [(0, 4, 4)], mode: "casual");
+        Party(m, partyId: "pA", members: ["p1", "p2"], ranges: [(0, 4, 4)], query: "+properties.mode:ranked", properties: new() { ["mode"] = "ranked" });
+        Party(m, partyId: "pA", members: ["p1", "p2"], ranges: [(0, 4, 4)], query: "+properties.mode:casual", properties: new() { ["mode"] = "casual" });
 
-        Party(m, "pR", ["r1", "r2"], [(0, 4, 4)], mode: "ranked");
-        Party(m, "pC", ["c1", "c2"], [(0, 4, 4)], mode: "casual");
+        Party(m, partyId: "pR", members: ["p3", "p4"], ranges: [(0, 4, 4)], query: "+properties.mode:ranked", properties: new() { ["mode"] = "ranked" });
+        Party(m, partyId: "pC", members: ["p5", "p6"], ranges: [(0, 4, 4)], query: "+properties.mode:casual", properties: new() { ["mode"] = "casual" });
 
         var matches = m.RunSweep();
 
         Assert.That(matches, Has.Count.EqualTo(1));
-        Assert.That(matches[0].SelectMany(ticket => ticket.Members), Is.EquivalentTo(new[] { "a1", "a2", "r1", "r2" }));
+        Assert.That(matches[0].SelectMany(ticket => ticket.Members), Is.EquivalentTo(new[] { "p1", "p2", "p3", "p4" }));
         Assert.That(matches[0].Select(ticket => (string)ticket.Properties["mode"]).Distinct().Single(), Is.EqualTo("ranked"));
 
         Assert.That(m.PoolSize, Is.EqualTo(1));
 
-        Party(m, "pC2", ["c3", "c4"], [(0, 4, 4)], mode: "casual");
+        Party(m, partyId: "pC2", members: ["p7", "p8"], ranges: [(0, 4, 4)], query: "+properties.mode:casual", properties: new() { ["mode"] = "casual" });
 
         var secondWave = m.RunSweep();
 
         Assert.That(secondWave, Has.Count.EqualTo(1));
-        Assert.That(secondWave[0].SelectMany(ticket => ticket.Members), Is.EquivalentTo(new[] { "c1", "c2", "c3", "c4" }));
+        Assert.That(secondWave[0].SelectMany(ticket => ticket.Members), Is.EquivalentTo(new[] { "p5", "p6", "p7", "p8" }));
         Assert.That(m.PoolSize, Is.Zero);
 
         // being seated releases the party's sessions, so pA can queue again at once
-        Assert.DoesNotThrow(() => Party(m, "pA", ["a1", "a2"], [(0, 4, 4)], mode: "arcade"));
+        Assert.DoesNotThrow(() => Party(m, partyId: "pA", members: ["p1", "p2"], ranges: [(0, 4, 4)], query: "+properties.mode:arcade", properties: new() { ["mode"] = "arcade" }));
         Assert.That(m.PoolSize, Is.EqualTo(1));
     }
 
@@ -268,13 +268,13 @@ public class PartyTests
     {
         using var m = new Matchmaker();
 
-        string ranked = Party(m, "pA", ["a1", "a2"], [(0, 4, 4)], mode: "ranked").Ticket;
-        Party(m, "pA", ["a1", "a2"], [(0, 4, 4)], mode: "casual");
-        Party(m, "pA", ["a1", "a2"], [(0, 4, 4)], mode: "arcade");
+        string ranked = Party(m, partyId: "pA", members: ["p1", "p2"], ranges: [(0, 4, 4)], query: "+properties.mode:ranked", properties: new() { ["mode"] = "ranked" }).Ticket;
+        Party(m, partyId: "pA", members: ["p1", "p2"], ranges: [(0, 4, 4)], query: "+properties.mode:casual", properties: new() { ["mode"] = "casual" });
+        Party(m, partyId: "pA", members: ["p1", "p2"], ranges: [(0, 4, 4)], query: "+properties.mode:arcade", properties: new() { ["mode"] = "arcade" });
 
-        Party(m, "pR", ["r1", "r2"], [(0, 4, 4)], mode: "ranked");
-        Party(m, "pC", ["c1", "c2"], [(0, 4, 4)], mode: "casual");
-        Party(m, "pX", ["x1", "x2"], [(0, 4, 4)], mode: "arcade");
+        Party(m, partyId: "pR", members: ["p3", "p4"], ranges: [(0, 4, 4)], query: "+properties.mode:ranked", properties: new() { ["mode"] = "ranked" });
+        Party(m, partyId: "pC", members: ["p5", "p6"], ranges: [(0, 4, 4)], query: "+properties.mode:casual", properties: new() { ["mode"] = "casual" });
+        Party(m, partyId: "pX", members: ["p7", "p8"], ranges: [(0, 4, 4)], query: "+properties.mode:arcade", properties: new() { ["mode"] = "arcade" });
 
         Assert.That(m.PoolSize, Is.EqualTo(6));
         Assert.That(m.CancelTicket(ranked), Is.True);
@@ -286,37 +286,37 @@ public class PartyTests
         Assert.That(m.RunSweep(t0), Is.Empty);
         Assert.That(m.PoolSize, Is.EqualTo(3));
 
-        Assert.DoesNotThrow(() => Party(m, "pA", ["a1", "a2"], [(0, 4, 4)], mode: "ranked"));
+        Assert.DoesNotThrow(() => Party(m, partyId: "pA", members: ["p1", "p2"], ranges: [(0, 4, 4)], query: "+properties.mode:ranked", properties: new() { ["mode"] = "ranked" }));
     }
 
     [Test]
-    public void PartyIdCannotBeReusedWithADifferentRoster() // OK
+    public void PartyIdCannotBeReusedWithADifferentRoster()
     {
         using var m = new Matchmaker();
 
-        Party(m, "pA", ["a1", "a2"], [(0, 4, 4)]);
+        Party(m, partyId: "pA", members: ["p1", "p2"], ranges: [(0, 4, 4)]);
 
-        Assert.Throws<MatchmakerException>(() => Party(m, "pA", ["a3", "a4"], [(0, 4, 4)]));
+        Assert.Throws<MatchmakerException>(() => Party(m, partyId: "pA", members: ["p3", "p4"], ranges: [(0, 4, 4)]));
 
         Assert.That(m.PoolSize, Is.EqualTo(1), "a rejected Add leaves no partial state");
 
-        Assert.Throws<MatchmakerException>(() => Party(m, "pA", ["a1", "a2", "a3"], [(0, 4, 4)]));
-        Assert.Throws<MatchmakerException>(() => Party(m, "pA", ["a1"], [(0, 4, 4)]));
+        Assert.Throws<MatchmakerException>(() => Party(m, partyId: "pA", members: ["p1", "p2", "p3"], ranges: [(0, 4, 4)]));
+        Assert.Throws<MatchmakerException>(() => Party(m, partyId: "pA", members: ["p1"], ranges: [(0, 4, 4)]));
 
         Assert.That(m.PoolSize, Is.EqualTo(1));
 
-        Assert.DoesNotThrow(() => Party(m, "pA", ["a1", "a2"], [(0, 4, 4)]));
+        Assert.DoesNotThrow(() => Party(m, partyId: "pA", members: ["p1", "p2"], ranges: [(0, 4, 4)]));
         Assert.That(m.PoolSize, Is.EqualTo(2));
     }
 
     [Test]
-    public void SessionCannotBeInTwoPartiesAtOnce() // OK
+    public void SessionCannotBeInTwoPartiesAtOnce()
     {
         using var m = new Matchmaker();
 
-        Party(m, "pA", ["p1", "p2"], [(0, 4, 4)]);
+        Party(m, partyId: "pA", members: ["p1", "p2"], ranges: [(0, 4, 4)]);
 
-        var ex = Assert.Throws<MatchmakerException>(() => Party(m, "pB", ["p1", "p3"], [(0, 4, 4)]));
+        var ex = Assert.Throws<MatchmakerException>(() => Party(m, partyId: "pB", members: ["p1", "p3"], ranges: [(0, 4, 4)]));
 
         Assert.That(ex!.Message, Is.EqualTo(MatchmakerException.InvalidPartyId));
     }
@@ -328,10 +328,10 @@ public class PartyTests
 
         foreach (string mode in new[] { "ranked", "casual", "arcade" })
         {
-            Party(m, "pA", ["a1", "a2"], [(0, 4, 4)], mode: mode);
+            Party(m, partyId: "pA", members: ["p1", "p2"], ranges: [(0, 4, 4)], query: $"+properties.mode:{mode}", properties: new() { ["mode"] = mode });
         }
 
-        Assert.Throws<MatchmakerException>(() => Party(m, "pA", ["a1", "a2"], [(0, 4, 4)], mode: "brawl"));
+        Assert.Throws<MatchmakerException>(() => Party(m, partyId: "pA", members: ["p1", "p2"], ranges: [(0, 4, 4)], query: "+properties.mode:brawl", properties: new() { ["mode"] = "brawl" }));
 
         Assert.That(m.PoolSize, Is.EqualTo(3));
     }
@@ -341,11 +341,11 @@ public class PartyTests
     {
         using var m = new Matchmaker();
 
-        Assert.Throws<ArgumentException>(() => Party(m, "pA", ["a1", "a2", "a3", "a4", "a5", "a6"], [(0, 4, 4), (m.Config.MaxTicketPatienceInSec, 2, 4)]));
+        Assert.Throws<ArgumentException>(() => Party(m, partyId: "pA", members: ["p1", "p2", "p3", "p4", "p5", "p6"], ranges: [(0, 4, 4), (m.Config.MaxTicketPatienceInSec, 2, 4)]));
 
         Assert.That(m.PoolSize, Is.Zero);
 
-        Assert.DoesNotThrow(() => Party(m, "pA", ["a1", "a2", "a3", "a4"], [(0, 6, 6), (m.Config.MaxTicketPatienceInSec, 4, 6)]));
+        Assert.DoesNotThrow(() => Party(m, partyId: "pA", members: ["p1", "p2", "p3", "p4"], ranges: [(0, 6, 6), (m.Config.MaxTicketPatienceInSec, 4, 6)]));
     }
 
     [Test]
@@ -354,8 +354,8 @@ public class PartyTests
         using var m = new Matchmaker();
 
         Assert.Throws<ArgumentException>(() => m.Add(
-            sessionIds: ["a1", "a2"],
-            ownerSessionId: "a1",
+            sessionIds: ["p1", "p2"],
+            ownerSessionId: "p1",
             partyId: "",
             query: "+properties.mode:ranked",
             properties: new() { ["mode"] = "ranked" },
@@ -391,7 +391,7 @@ public class PartyTests
 
         for (int i = 1; i <= count; i++)
         {
-            string player = $"solo{i}";
+            string player = $"p{i}";
             players.Add(player);
 
             AddPartyPriorityTicket(matchmaker, partyId: "", members: [player], teamSize: teamSize, boosted: boosted);
