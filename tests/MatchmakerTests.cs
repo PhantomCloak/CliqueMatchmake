@@ -430,6 +430,27 @@ public class MatchmakerTests
             Assert.That(matches[0].SelectMany(ticket => ticket.Members), Is.EquivalentTo(new[] { "p1", "p2" }));
             Assert.That(m.PoolSize, Is.Zero);
         });
+
+        // the query ladder turns over in a loop of its own, so it gets a pair of its own: the size
+        // is pinned, and only the query rung marked at 10 lets p1 take p2
+        using var queryLadder = new Matchmaker(new MatchmakerConfig { MaxTicketPatienceInSec = 30 });
+
+        foreach (var (player, skill) in new[] { ("p1", 1000), ("p2", 1500) })
+        {
+            Ticket(queryLadder, player: player, ranges: [(AtSec: 0, Min: 2, Max: 2)],
+                queries: [
+                    (AtSec: 0, Query: "+properties.skill:[900 TO 1100]"),
+                    (AtSec: 10, Query: "+properties.skill:[500 TO 2000]"),
+                ],
+                properties: new() { ["skill"] = skill }, createdAt: t0);
+        }
+
+        Assert.That(queryLadder.RunSweep(t0.AddSeconds(9)), Is.Empty, "a second short of the rung, p1's query still turns p2 away");
+
+        var queryMatches = queryLadder.RunSweep(t0.AddSeconds(10));
+
+        Assert.That(queryMatches, Has.Count.EqualTo(1), "the query rung marked at 10 is in force at 10");
+        Assert.That(queryMatches[0].SelectMany(ticket => ticket.Members), Is.EquivalentTo(new[] { "p1", "p2" }));
     }
 
     [Test]
