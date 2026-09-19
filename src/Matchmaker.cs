@@ -1,8 +1,9 @@
-using Lucene.Net.Search;
 namespace Sukhoi;
 
+using Lucene.Net.Search;
+
 using QueryRung = (int AtSec, string Query);
-using ParsedQueryRung = (int AtSec, string QueryString, Query Query);
+using ParsedQueryRung = (int AtSec, string QueryString, Lucene.Net.Search.Query Query);
 using MinMaxRung = (int AtSec, int Min, int Max);
 
 public sealed class MatchmakerException : Exception
@@ -15,6 +16,7 @@ public sealed class MatchmakerException : Exception
     public const string InvalidPartyId = "matchmaker multiple tickets have to share same party id";
     public const string InvalidPartyMembers = "matchmaker multiple tickets have to share same members";
     public const string QueryPropertiesDiffer = "matchmaker queries must constrain the same properties";
+    public const string BackfillRosterQueued = "matchmaker backfill roster already queued";
 }
 
 public class MatchmakerTicket
@@ -42,7 +44,7 @@ public class MatchmakerTicket
     public HashSet<string> Members { get; set; } = new();
 }
 
-public class Matchmaker : IDisposable
+public partial class Matchmaker : IDisposable
 {
     private MatchIndex _index = new();
 
@@ -85,12 +87,15 @@ public class Matchmaker : IDisposable
     }
 
 
-   public (string Ticket, long CreatedAt) Add(HashSet<string> sessionIds, string ownerSessionId, string partyId, string query, Dictionary<string, object> properties, MinMaxRung[] minMaxLadder, int countMultiple = 1, DateTime? createdAt = null) =>
-        AddTicket(sessionIds, ownerSessionId, partyId, [(0, query)], properties, minMaxLadder, _maxLadderRungs, countMultiple, createdAt);
+    public (string Ticket, long CreatedAt) Add(HashSet<string> sessionIds, string ownerSessionId, string partyId, string query, Dictionary<string, object> properties, MinMaxRung[] minMaxLadder, int countMultiple = 1, DateTime? createdAt = null) =>
+         AddTicket(sessionIds, ownerSessionId, partyId, [(0, query)], properties, minMaxLadder, _maxLadderRungs, countMultiple, createdAt);
 
-   public (string Ticket, long CreatedAt) Add(HashSet<string> sessionIds, string ownerSessionId, string partyId, QueryRung[] queryLadder, Dictionary<string, object> properties, MinMaxRung[] minMaxLadder, int countMultiple = 1, DateTime? createdAt = null) =>
-        AddTicket(sessionIds, ownerSessionId, partyId, queryLadder, properties, minMaxLadder, _maxLadderRungs, countMultiple, createdAt);
+    public (string Ticket, long CreatedAt) Add(HashSet<string> sessionIds, string ownerSessionId, string partyId, QueryRung[] queryLadder, Dictionary<string, object> properties, MinMaxRung[] minMaxLadder, int countMultiple = 1, DateTime? createdAt = null) =>
+         AddTicket(sessionIds, ownerSessionId, partyId, queryLadder, properties, minMaxLadder, _maxLadderRungs, countMultiple, createdAt);
 
+    public (string Ticket, long CreatedAt) AddBackfill(HashSet<string> sessionIds, string ownerSessionId, string partyId, string query, Dictionary<string, object> properties, MinMaxRung[] minMaxLadder, int countMultiple = 1, DateTime? createdAt = null) =>
+        AddBackfill(sessionIds, ownerSessionId, partyId, [(0, query)], properties, minMaxLadder, countMultiple, createdAt);
+ 
     private (string Ticket, long CreatedAt) AddTicket(HashSet<string> sessionIds, string ownerSessionId, string partyId, QueryRung[] queryLadder, Dictionary<string, object> properties, MinMaxRung[] minMaxLadder, int minMaxRungCap, int countMultiple, DateTime? createdAt)
     {
         if (queryLadder.Length == 0 || minMaxLadder.Length == 0)
