@@ -111,16 +111,24 @@ Measured cases on R7950X, .NET 8 Runtime
 - `mapOr` — map preference, OR clause
 - `mapRegex` — map preference, regex
 
-| Scenario     | add 1k | add 10k | add alloc 1k | add alloc 10k | sweep 1k | sweep 10k | sweep alloc 1k | sweep alloc 10k | tickets/s 1k | tickets/s 10k |
-| ------------ | -----: | ------: | -----------: | ------------: | -------: | --------: | -------------: | --------------: | -----------: | ------------: |
-| `chess1v1`   |  36 ms |  420 ms |        39 MB |        379 MB |    41 ms |    387 ms |          78 MB |          352 MB |       24,075 |        25,839 |
-| `simple5v5`  |   8 ms |  106 ms |        15 MB |        148 MB |     5 ms |     66 ms |           8 MB |           75 MB |      186,720 |       149,660 |
-| `ranked5v5`  |  36 ms |  410 ms |        37 MB |        374 MB |    10 ms |     85 ms |          24 MB |           98 MB |       92,464 |       116,644 |
-| `modes10`    |  30 ms |  334 ms |        29 MB |        303 MB |     5 ms |     60 ms |           8 MB |           76 MB |      169,978 |       165,901 |
-| `coop3`      |  39 ms |  423 ms |        35 MB |        337 MB |     4 ms |     78 ms |           8 MB |           75 MB |      246,227 |       127,676 |
-| `roleQueue5` |  74 ms |  789 ms |        65 MB |        652 MB |     7 ms |    127 ms |          14 MB |          128 MB |      233,433 |       141,231 |
-| `mapOr`      |  57 ms |  637 ms |        46 MB |        465 MB |    17 ms |    187 ms |          18 MB |           90 MB |       58,589 |        53,217 |
-| `mapRegex`   |  87 ms |  909 ms |       121 MB |       1.16 GB |     5 ms |     68 ms |           9 MB |           76 MB |      193,907 |       145,490 |
+| Scenario     | Players |    add | add alloc |  sweep | sweep alloc | tickets/s |
+| ------------ | ------: | -----: | --------: | -----: | ----------: | --------: |
+| `chess1v1`   |      1k |  36 ms |     39 MB |  41 ms |       78 MB |    24,075 |
+| `chess1v1`   |     10k | 420 ms |    379 MB | 387 ms |      352 MB |    25,839 |
+| `simple5v5`  |      1k |   8 ms |     15 MB |   5 ms |        8 MB |   186,720 |
+| `simple5v5`  |     10k | 106 ms |    148 MB |  66 ms |       75 MB |   149,660 |
+| `ranked5v5`  |      1k |  36 ms |     37 MB |  10 ms |       24 MB |    92,464 |
+| `ranked5v5`  |     10k | 410 ms |    374 MB |  85 ms |       98 MB |   116,644 |
+| `modes10`    |      1k |  30 ms |     29 MB |   5 ms |        8 MB |   169,978 |
+| `modes10`    |     10k | 334 ms |    303 MB |  60 ms |       76 MB |   165,901 |
+| `coop3`      |      1k |  39 ms |     35 MB |   4 ms |        8 MB |   246,227 |
+| `coop3`      |     10k | 423 ms |    337 MB |  78 ms |       75 MB |   127,676 |
+| `roleQueue5` |      1k |  74 ms |     65 MB |   7 ms |       14 MB |   233,433 |
+| `roleQueue5` |     10k | 789 ms |    652 MB | 127 ms |      128 MB |   141,231 |
+| `mapOr`      |      1k |  57 ms |     46 MB |  17 ms |       18 MB |    58,589 |
+| `mapOr`      |     10k | 637 ms |    465 MB | 187 ms |       90 MB |    53,217 |
+| `mapRegex`   |      1k |  87 ms |    121 MB |   5 ms |        9 MB |   193,907 |
+| `mapRegex`   |     10k | 909 ms |   1.16 GB |  68 ms |       76 MB |   145,490 |
 
 Measured on GitHub Actions runner, `ubuntu-latest` (2 cores, 8 GB RAM), .NET 10
 
