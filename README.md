@@ -72,7 +72,7 @@ Reference: `RankedFiveVsFiveWithTolerance`
 
 ### Role queue
 
-Similar to Overwatch, a team must consist of 1 tank / 2 dps / 2 support. Player picks which roles they can play and every seat is filled once, so no lobby ends up with five dps and no healer
+Similar to Overwatch, a team must consist of 1 tank / 2 dps / 2 support. Player picks which roles they can play and every seat is filled once
 
 Reference: `CoopRoleQueueFormsOneTankTwoDpsTwoSupport`
 
