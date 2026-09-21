@@ -115,27 +115,6 @@ dotnet run -c Release --project benchmarks -- --sizes=1000,10000 --iters=3
 
 <br>
 
-Measured on R7950X Linux Desktop (32 cores, 16 GB RAM), .NET 10
-
-| Scenario     | Players |    add | add alloc |  sweep | sweep alloc |
-| ------------ | ------: | -----: | --------: | -----: | ----------: |
-| `chess1v1`   |      1k |  36 ms |     39 MB |  41 ms |       78 MB |
-| `chess1v1`   |     10k | 420 ms |    379 MB | 387 ms |      352 MB |
-| `simple5v5`  |      1k |   8 ms |     15 MB |   5 ms |        8 MB |
-| `simple5v5`  |     10k | 106 ms |    148 MB |  66 ms |       75 MB |
-| `ranked5v5`  |      1k |  36 ms |     37 MB |  10 ms |       24 MB |
-| `ranked5v5`  |     10k | 410 ms |    374 MB |  85 ms |       98 MB |
-| `modes10`    |      1k |  30 ms |     29 MB |   5 ms |        8 MB |
-| `modes10`    |     10k | 334 ms |    303 MB |  60 ms |       76 MB |
-| `coop3`      |      1k |  39 ms |     35 MB |   4 ms |        8 MB |
-| `coop3`      |     10k | 423 ms |    337 MB |  78 ms |       75 MB |
-| `roleQueue5` |      1k |  74 ms |     65 MB |   7 ms |       14 MB |
-| `roleQueue5` |     10k | 789 ms |    652 MB | 127 ms |      128 MB |
-| `mapOr`      |      1k |  57 ms |     46 MB |  17 ms |       18 MB |
-| `mapOr`      |     10k | 637 ms |    465 MB | 187 ms |       90 MB |
-| `mapRegex`   |      1k |  87 ms |    121 MB |   5 ms |        9 MB |
-| `mapRegex`   |     10k | 909 ms |   1.16 GB |  68 ms |       76 MB |
-
 Measured on GitHub Actions runner, `ubuntu-latest` (2 cores, 8 GB RAM), .NET 10
 
 | Scenario     | Players |     add | add alloc |  sweep | sweep alloc |
