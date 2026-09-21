@@ -114,6 +114,7 @@ dotnet run -c Release --project benchmarks -- --sizes=1000,10000 --iters=3
 - `mapRegex` — map preference, regex
 
 <br>
+
 Measured on R7950X Linux Desktop (32 cores, 16 GB RAM), .NET 10
 
 | Scenario     | Players |    add | add alloc |  sweep | sweep alloc | tickets/s |
