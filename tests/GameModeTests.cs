@@ -363,7 +363,9 @@ public class GameModeTests
         for (int i = 0; i < PlayerCount; i++)
         {
             string mode = gameModes[rng.Next(gameModes.Length)];
-            Ticket(m, $"p{i}", [(AtSec: 0, Min: MatchSize, Max: MatchSize)], $"+properties.mode:{mode}", new() { ["mode"] = mode });
+            string playerId = $"p{i}";
+            queuedPerMode[mode].Add(playerId);
+            Ticket(m, playerId, [(AtSec: 0, Min: MatchSize, Max: MatchSize)], $"+properties.mode:{mode}", new() { ["mode"] = mode });
         }
 
         var t0 = DateTime.UtcNow;
