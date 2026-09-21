@@ -3,16 +3,22 @@ namespace Sukhoi.Tests;
 // These test cases cover real-world matchmaking scenarios, and also serve as examples
 public class GameModeTests
 {
-    // Example Case (5v5 Ranked): every player should match within it's MMR and MMR tolerance
+    // Example Case (simple 5v5): no preferences at all - any ten players in the pool make a lobby
     [Test]
-    public void RankedFiveVsFiveMatchesSimple()
+    public void SimpleFiveVsFiveMatchesAnyTenPlayers()
     {
         using var m = new Matchmaker();
         const int TeamSize = 5;
+        const int PlayerCount = 29;
 
-        var oneShort = PopulatePoolRanked(m, "oneShort", count: 9, mmr: 3000, tolerance: 50, teamSize: TeamSize);
-        var bronze = PopulatePoolRanked(m, "bronze", count: 10, mmr: 1000, tolerance: 50, teamSize: TeamSize);
-        var silver = PopulatePoolRanked(m, "silver", count: 10, mmr: 2000, tolerance: 50, teamSize: TeamSize);
+        var queued = new List<string>();
+        for (int i = 1; i <= PlayerCount; i++)
+        {
+            string player = $"p{i}";
+            queued.Add(player);
+
+            Ticket(m, player: player, [(AtSec: 0, Min: TeamSize * 2, Max: TeamSize * 2)], query: "*");
+        }
 
         var t0 = DateTime.UtcNow;
 
@@ -22,12 +28,13 @@ public class GameModeTests
         foreach (var match in matches)
         {
             Assert.That(match.Sum(ticket => ticket.Size), Is.EqualTo(TeamSize * 2));
-            Assert.That(match.Select(ticket => Convert.ToInt32(ticket.Properties["skill"])).Distinct(), Has.Exactly(1).Items);
         }
 
-        var matched = matches.SelectMany(match => match).SelectMany(ticket => ticket.Members);
-        Assert.That(matched, Is.EquivalentTo(bronze.Concat(silver)));
-        Assert.That(m.PoolSize, Is.EqualTo(oneShort.Count));
+        var matched = matches.SelectMany(match => match).SelectMany(ticket => ticket.Members).ToList();
+
+        Assert.That(matched, Is.Unique, "a player was seated in two lobbies at once");
+        Assert.That(matched, Is.SubsetOf(queued));
+        Assert.That(m.PoolSize, Is.EqualTo(PlayerCount - matched.Count), "the nine left over are one short of a lobby");
     }
 
     // Example Case: a ranked 5v5 queue with mixed MMR and mixed patience for skill gaps (50/100/300).
@@ -38,27 +45,41 @@ public class GameModeTests
         using var m = new Matchmaker();
         const int TeamSize = 5;
 
-        List<string> Queue(string prefix, int mmr, int tolerance, int gap = 0) =>
-            PopulatePoolRanked(m, prefix, count: TeamSize, mmr: mmr, tolerance: tolerance, teamSize: TeamSize,
-                gap: gap);
-
-        (string Tier, int Mmr, int Tolerance)[] tiers =
-            [("bronze", 1000, 50), ("silver", 2000, 100), ("gold", 3000, 300)];
-
-        var matchable = new List<string>();
-        foreach (var (tier, mmr, tolerance) in tiers)
+        var groups = new[]
         {
-            matchable.AddRange(Queue($"{tier}Low", mmr, tolerance));
-            matchable.AddRange(Queue($"{tier}High", mmr + tolerance, tolerance));
+            new { Name = "bronzeLow",  Mmr = 1000, Tolerance = 50,  Gap = 0,    Seated = true,  Players = new List<string>() },
+            new { Name = "bronzeHigh", Mmr = 1050, Tolerance = 50,  Gap = 0,    Seated = true,  Players = new List<string>() },
+            new { Name = "silverLow",  Mmr = 2000, Tolerance = 100, Gap = 0,    Seated = true,  Players = new List<string>() },
+            new { Name = "silverHigh", Mmr = 2100, Tolerance = 100, Gap = 0,    Seated = true,  Players = new List<string>() },
+            new { Name = "goldLow",    Mmr = 3000, Tolerance = 300, Gap = 0,    Seated = true,  Players = new List<string>() },
+            new { Name = "goldHigh",   Mmr = 3300, Tolerance = 300, Gap = 0,    Seated = true,  Players = new List<string>() },
+
+            // reaches bronze, but bronze's 50 does not reach back
+            new { Name = "generous",   Mmr = 1200, Tolerance = 300, Gap = 0,    Seated = false, Players = new List<string>() },
+            // 51 apart, one point outside the window both of them named
+            new { Name = "tooFarLow",  Mmr = 4000, Tolerance = 50,  Gap = 0,    Seated = false, Players = new List<string>() },
+            new { Name = "tooFarHigh", Mmr = 4051, Tolerance = 50,  Gap = 0,    Seated = false, Players = new List<string>() },
+            // a thousand points between each of them, so the group cannot even fill itself
+            new { Name = "loner",      Mmr = 9000, Tolerance = 50,  Gap = 1000, Seated = false, Players = new List<string>() },
+        };
+
+        foreach (var group in groups)
+        {
+            for (int i = 1; i <= TeamSize; i++)
+            {
+                int skill = group.Mmr + (i - 1) * group.Gap;
+                string player = $"{group.Name}{i}";
+                group.Players.Add(player);
+
+                Ticket(m, player: player, ranges: [(AtSec: 0, Min: TeamSize * 2, Max: TeamSize * 2)],
+                    query:
+                    $"+properties.mode:ranked +properties.skill:[{skill - group.Tolerance} TO {skill + group.Tolerance}]",
+                    properties: new() { ["mode"] = "ranked", ["skill"] = skill, ["tolerance"] = group.Tolerance });
+            }
         }
 
-        List<string> unmatchable =
-        [
-            .. Queue("generous", mmr: 1200, tolerance: 300),
-            .. Queue("tooFarLow", mmr: 4000, tolerance: 50),
-            .. Queue("tooFarHigh", mmr: 4051, tolerance: 50),
-            .. Queue("loner", mmr: 9000, tolerance: 50, gap: 1000),
-        ];
+        var matchable = groups.Where(group => group.Seated).SelectMany(group => group.Players).ToList();
+        var unmatchable = groups.Where(group => !group.Seated).SelectMany(group => group.Players).ToList();
 
         Assert.That(m.PoolSize, Is.EqualTo(matchable.Count + unmatchable.Count));
 
@@ -96,16 +117,11 @@ public class GameModeTests
 
         string[] roles = ["tank", "dps", "support"];
 
-        void AddPlayer(string player, string role) =>
-            Ticket(m, player, [(0, MatchSize, MatchSize)],
-                query: $"+properties.mode:coop -properties.role:{role}",
-                properties: new() { ["mode"] = "coop", ["role"] = role });
-
         foreach (string role in roles)
         {
             for (int slot = 0; slot < 2; slot++)
             {
-                AddPlayer($"{role}{slot}", role: role);
+                Ticket(m, player: $"{role}{slot}", [(0, MatchSize, MatchSize)], query: $"+properties.mode:coop -properties.role:{role}", properties: new() { ["mode"] = "coop", ["role"] = role });
             }
         }
 
@@ -125,30 +141,22 @@ public class GameModeTests
     public void CoopRoleQueueFormsOneTankTwoDpsTwoSupport()
     {
         using var m = new Matchmaker();
-        const string SeatQueueMode = "roleq";
-        Dictionary<string, string[]> SeatsByRole = new()
-        {
-            ["tank"] = ["tank"],
-            ["dps"] = ["dps1", "dps2"],
-            ["support"] = ["support1", "support2"],
-        };
-        string[] TeamSeats = [.. SeatsByRole.Values.SelectMany(seats => seats)];
-        int SeatQueueTeamSize = TeamSeats.Length;
 
-        void AddPlayer(string player, string role)
-        {
-            foreach (string seat in SeatsByRole[role])
-            {
-                Ticket(m, player, [(0, SeatQueueTeamSize, SeatQueueTeamSize)],
-                    query: $"+properties.mode:{SeatQueueMode} -properties.seat:{seat}",
-                    properties: new() { ["mode"] = SeatQueueMode, ["role"] = role, ["seat"] = seat });
-            }
-        }
+        MinMaxRung[] ticketSize = [(0, 5, 5)];
 
-        AddPlayer("p1", role: "tank");
-        AddPlayer("p2", role: "dps");
-        AddPlayer("p3", role: "support");
-        AddPlayer("p4", role: "support");
+        // Tank
+        Ticket(m, player: "p1", ticketSize, query: $"+properties.mode:roleq -properties.seat:tank", properties: new() { ["mode"] = "roleq", ["role"] = "tank", ["seat"] = "tank" });
+
+        // DPS we create one ticket for each seat
+        Ticket(m, player: "p2", ticketSize, query: $"+properties.mode:roleq -properties.seat:dps1", properties: new() { ["mode"] = "roleq", ["role"] = "dps", ["seat"] = "dps1" });
+        Ticket(m, player: "p2", ticketSize, query: $"+properties.mode:roleq -properties.seat:dps2", properties: new() { ["mode"] = "roleq", ["role"] = "dps", ["seat"] = "dps2" });
+
+        // Support same as the DPS
+        Ticket(m, player: "p3", ticketSize, query: $"+properties.mode:roleq -properties.seat:support1", properties: new() { ["mode"] = "roleq", ["role"] = "support", ["seat"] = "support1" });
+        Ticket(m, player: "p3", ticketSize, query: $"+properties.mode:roleq -properties.seat:support2", properties: new() { ["mode"] = "roleq", ["role"] = "support", ["seat"] = "support2" });
+
+        Ticket(m, player: "p4", ticketSize, query: $"+properties.mode:roleq -properties.seat:support1", properties: new() { ["mode"] = "roleq", ["role"] = "support", ["seat"] = "support1" });
+        Ticket(m, player: "p4", ticketSize, query: $"+properties.mode:roleq -properties.seat:support2", properties: new() { ["mode"] = "roleq", ["role"] = "support", ["seat"] = "support2" });
 
         var t0 = DateTime.UtcNow;
 
@@ -158,7 +166,14 @@ public class GameModeTests
         Assert.That(m.PoolSize, Is.EqualTo(7), "one tank ticket, two dps tickets and four support tickets");
         Assert.That(m.ActivePoolSize, Is.Zero);
 
-        AddPlayer("p5", role: "dps");
+        // Add Missing DPS
+        Ticket(m, player: "p5", ticketSize, query: $"+properties.mode:roleq -properties.seat:dps1", properties: new() { ["mode"] = "roleq", ["role"] = "dps", ["seat"] = "dps1" });
+        Ticket(m, player: "p5", ticketSize, query: $"+properties.mode:roleq -properties.seat:dps2", properties: new() { ["mode"] = "roleq", ["role"] = "dps", ["seat"] = "dps2" });
+
+
+        // Add another Support which shouldn't be matched
+        Ticket(m, player: "p6", ticketSize, query: $"+properties.mode:roleq -properties.seat:support1", properties: new() { ["mode"] = "roleq", ["role"] = "support", ["seat"] = "support1" });
+        Ticket(m, player: "p6", ticketSize, query: $"+properties.mode:roleq -properties.seat:support2", properties: new() { ["mode"] = "roleq", ["role"] = "support", ["seat"] = "support2" });
 
         var secondSweepMatches = m.RunSweep();
 
@@ -169,62 +184,46 @@ public class GameModeTests
         {
             Assert.That(match.SelectMany(ticket => ticket.Members), Is.EquivalentTo(new[] { "p1", "p2", "p3", "p4", "p5" }));
             Assert.That(match.Select(ticket => (string)ticket.Properties["role"]), Is.EquivalentTo(new[] { "tank", "dps", "dps", "support", "support" }));
-            Assert.That(match.Select(ticket => (string)ticket.Properties["seat"]), Is.EquivalentTo(TeamSeats));
-            Assert.That(match.Sum(ticket => ticket.Size), Is.EqualTo(SeatQueueTeamSize));
         });
 
-        Assert.That(m.PoolSize, Is.Zero);
+        Assert.That(m.PoolSize, Is.EqualTo(2));
     }
 
-    // Example Case: the same (1/2/2) composition, with every seat queued before the first sweep -
-    // the lobby has to form in one pass rather than being completed by a later arrival
+    // Example Case (3 people co-op): players are allowed to avoid other players, these players never be in same match with people they avoid
     [Test]
-    public void CoopRoleQueueFormsOneTankTwoDpsTwoSupportInASingleSweep()
+    public void CoopMatchesThreePlayersWhoAvoidEachOther()
     {
         using var m = new Matchmaker();
-        const string SeatQueueMode = "roleq";
-        Dictionary<string, string[]> SeatsByRole = new()
+        const int MatchSize = 3;
+
+        var avoids = new Dictionary<string, string[]>
         {
-            ["tank"] = ["tank"],
-            ["dps"] = ["dps1", "dps2"],
-            ["support"] = ["support1", "support2"],
+            ["kiwi"] = ["cow", "bird"],
+            ["cow"] = ["kiwi", "strawberry"],   // kiwi and cow avoid each other
+            ["bird"] = ["kiwi", "strawberry"], // kiwi avoids bird, bird avoids kiwi back
+            ["snake"] = ["strawberry"],
+            ["strawberry"] = ["cow", "snake"],    // bird avoids strawberry, strawberry never named bird
         };
-        string[] TeamSeats = [.. SeatsByRole.Values.SelectMany(seats => seats)];
-        int SeatQueueTeamSize = TeamSeats.Length;
 
-        void AddPlayer(string player, string role)
+        foreach (var (player, avoided) in avoids)
         {
-            foreach (string seat in SeatsByRole[role])
-            {
-                Ticket(m, player, [(0, SeatQueueTeamSize, SeatQueueTeamSize)],
-                    query: $"+properties.mode:{SeatQueueMode} -properties.seat:{seat}",
-                    properties: new() { ["mode"] = SeatQueueMode, ["role"] = role, ["seat"] = seat });
-            }
-        }
+            string exclusions = string.Join(" ", avoided.Select(other => $"-properties.player:{other}"));
 
-        AddPlayer("tank1", role: "tank");
-        AddPlayer("dps1", role: "dps");
-        AddPlayer("dps2", role: "dps");
-        AddPlayer("support1", role: "support");
-        AddPlayer("support2", role: "support");
+            Ticket(m, player: player, ranges: [(AtSec: 0, Min: MatchSize, Max: MatchSize)],
+                query: $"+properties.mode:coop {exclusions}", properties: new() { ["mode"] = "coop", ["player"] = player });
+        }
 
         var matches = m.RunSweep();
 
         Assert.That(matches, Has.Count.EqualTo(1));
 
-        var match = matches[0];
         Assert.Multiple(() =>
         {
-            Assert.That(match.SelectMany(ticket => ticket.Members),
-                Is.EquivalentTo(new[] { "tank1", "dps1", "dps2", "support1", "support2" }));
-            Assert.That(match.Select(ticket => (string)ticket.Properties["role"]),
-                Is.EquivalentTo(new[] { "tank", "dps", "dps", "support", "support" }));
-            Assert.That(match.Select(ticket => (string)ticket.Properties["seat"]), Is.EquivalentTo(TeamSeats));
-            Assert.That(match.Sum(ticket => ticket.Size), Is.EqualTo(SeatQueueTeamSize));
+            Assert.That(matches[0].SelectMany(ticket => ticket.Members), Is.EquivalentTo(new[] { "cow", "bird", "snake" }));
+            Assert.That(m.PoolSize, Is.EqualTo(2), "kiwi and strawberry do not avoid each other, but two players are one short of a match");
         });
-
-        Assert.That(m.PoolSize, Is.Zero);
     }
+
 
     // Example Case (picky and flexible players): the game lets a player either name the maps they want or say "any map is fine"
     [Test]
@@ -360,16 +359,11 @@ public class GameModeTests
         IEnumerable<string> Members(IEnumerable<List<MatchmakerTicket>> matches) =>
             matches.SelectMany(match => match).SelectMany(ticket => ticket.Members);
 
-        void AddPlayer(string player, string mode) =>
-            Ticket(m, player, [(0, MatchSize, MatchSize)],
-                $"+properties.mode:{mode}", new() { ["mode"] = mode });
 
         for (int i = 0; i < PlayerCount; i++)
         {
             string mode = gameModes[rng.Next(gameModes.Length)];
-            string playerId = $"p{i}";
-            queuedPerMode[mode].Add(playerId);
-            AddPlayer(playerId, mode);
+            Ticket(m, $"p{i}", [(AtSec: 0, Min: MatchSize, Max: MatchSize)], $"+properties.mode:{mode}", new() { ["mode"] = mode });
         }
 
         var t0 = DateTime.UtcNow;
@@ -448,32 +442,35 @@ public class GameModeTests
         });
     }
 
-    static List<string> PopulatePoolRanked(Matchmaker matchmaker, string prefix, int count, int mmr,
-        int tolerance, int teamSize, int gap = 0)
+    // Example Case (backfill): a running 5v5 is down to seven players, game server queues them as one backfill ticket
+    [Test]
+    public void BackfillSeatsQueuedPlayersIntoARunningLobby()
     {
-        var players = new List<string>(count);
+        using var m = new Matchmaker();
+        const int LobbySize = 10;
 
-        for (int i = 0; i < count; i++)
+        string[] stillPlaying = ["p1", "p2", "p3", "p4", "p5", "p6", "p7"];
+        string[] newcomers = ["p8", "p9", "p10"];
+
+        Backfill(m, partyId: "lobbyA", members: stillPlaying, ranges: [(AtSec: 0, Min: LobbySize, Max: LobbySize)], query: "+properties.mode:ranked", properties: new() { ["mode"] = "ranked" });
+
+        Assert.That(m.RunSweep(), Is.Empty, "nobody is queued yet, the lobby waits for players");
+
+        foreach (string player in newcomers)
         {
-            int skill = mmr + i * gap;
-            string player = $"{prefix}{i + 1}";
-            players.Add(player);
-
-            matchmaker.Add(
-                sessionIds: [player],
-                ownerSessionId: player,
-                partyId: "",
-                query: $"+properties.mode:ranked +properties.skill:[{skill - tolerance} TO {skill + tolerance}]",
-                properties: new()
-                {
-                    ["mode"] = "ranked",
-                    ["skill"] = skill,
-                    ["tolerance"] = tolerance,
-                },
-                minMaxLadder: [(0, teamSize * 2, teamSize * 2)],
-                countMultiple: 1);
+            Ticket(m, player: player, ranges: [(AtSec: 0, Min: LobbySize, Max: LobbySize)], query: "+properties.mode:ranked", properties: new() { ["mode"] = "ranked" });
         }
 
-        return players;
+        var matches = m.RunSweep();
+
+        Assert.That(matches, Has.Count.EqualTo(1));
+
+        var match = matches[0];
+        Assert.Multiple(() =>
+        {
+            Assert.That(match.SelectMany(ticket => ticket.Members), Is.EquivalentTo(stillPlaying.Concat(newcomers)));
+            Assert.That(match.Count(ticket => ticket.PartyId == "lobbyA"), Is.EqualTo(1), "the lobby is seated as one ticket");
+            Assert.That(m.PoolSize, Is.Zero);
+        });
     }
 }
