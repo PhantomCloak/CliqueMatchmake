@@ -14,7 +14,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\src\Sukhoi.csproj" />
+    <ProjectReference Include="..\src\CliqueMatchmaker.csproj" />
   </ItemGroup>
 
 </Project>

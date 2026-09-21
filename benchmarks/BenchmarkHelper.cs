@@ -1,4 +1,4 @@
-namespace Sukhoi.Benchmarks;
+namespace CliqueMatchmaker.Benchmarks;
 
 sealed record TicketSpec(string[] Members, string Owner, string PartyId, QueryRung[] Queries, Dictionary<string, object> Properties, MinMaxRung[] Ranges, int CountMultiple = 1);
 

@@ -1,6 +1,6 @@
 using System.Diagnostics;
 
-namespace Sukhoi.Benchmarks;
+namespace CliqueMatchmaker.Benchmarks;
 
 static class Benchmark
 {
@@ -28,7 +28,7 @@ static class Benchmark
             return 2;
         }
 
-        Console.WriteLine($"Sukhoi benchmark - {Environment.Version}, {(Environment.Is64BitProcess ? "x64" : "x86")}, {Environment.ProcessorCount} cores, serverGC={System.Runtime.GCSettings.IsServerGC}");
+        Console.WriteLine($"CliqueMatchmaker benchmark - {Environment.Version}, {(Environment.Is64BitProcess ? "x64" : "x86")}, {Environment.ProcessorCount} cores, serverGC={System.Runtime.GCSettings.IsServerGC}");
         Console.WriteLine($"sizes={string.Join(",", options.Sizes)} iters={options.Iters}");
 
         if (Debugger.IsAttached)

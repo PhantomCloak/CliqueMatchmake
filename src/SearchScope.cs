@@ -2,7 +2,7 @@ using Lucene.Net.Index;
 using Lucene.Net.Search;
 using Lucene.Net.Util;
 
-namespace Sukhoi;
+namespace CliqueMatchmaker;
 
 sealed class TicketDocBitSetCollector : ICollector
 {

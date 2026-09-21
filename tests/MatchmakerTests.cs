@@ -1,4 +1,4 @@
-﻿namespace Sukhoi.Tests;
+﻿namespace CliqueMatchmaker.Tests;
 
 public class MatchmakerTests
 {

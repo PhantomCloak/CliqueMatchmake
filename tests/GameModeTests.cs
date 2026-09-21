@@ -1,4 +1,4 @@
-namespace Sukhoi.Tests;
+namespace CliqueMatchmaker.Tests;
 
 // These test cases cover real-world matchmaking scenarios, and also serve as examples
 public class GameModeTests

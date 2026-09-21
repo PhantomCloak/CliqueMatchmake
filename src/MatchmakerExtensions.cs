@@ -1,4 +1,4 @@
-namespace Sukhoi;
+namespace CliqueMatchmaker;
 
 using Lucene.Net.Index;
 using Lucene.Net.Search;

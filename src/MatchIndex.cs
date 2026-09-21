@@ -6,7 +6,7 @@ using Lucene.Net.Search.Similarities;
 using Lucene.Net.Store;
 using Lucene.Net.Util;
 
-namespace Sukhoi;
+namespace CliqueMatchmaker;
 
 public class MatchIndex : IDisposable
 {

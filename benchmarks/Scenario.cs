@@ -1,4 +1,4 @@
-namespace Sukhoi.Benchmarks;
+namespace CliqueMatchmaker.Benchmarks;
 
 sealed record Scenario(string Name, string Blurb, Func<int, Random, List<TicketSpec>> Build, MatchmakerConfig? Config = null)
 {

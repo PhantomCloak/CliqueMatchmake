@@ -1,3 +1,3 @@
-using Sukhoi.Benchmarks;
+using CliqueMatchmaker.Benchmarks;
 
 return Benchmark.Run(args);

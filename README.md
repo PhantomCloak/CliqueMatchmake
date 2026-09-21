@@ -1,10 +1,10 @@
-## Sukhoi Matchmaker
+## CliqueMatchmaker
 
-[![Tests](https://github.com/PhantomCloak/CMatchDraft/actions/workflows/tests.yml/badge.svg)](https://github.com/PhantomCloak/CMatchDraft/actions/workflows/tests.yml)
-[![Benchmark](https://github.com/PhantomCloak/Sukhoi/actions/workflows/benchmark.yml/badge.svg)](https://github.com/PhantomCloak/Sukhoi/actions/workflows/benchmark.yml)
+[![Tests](https://github.com/PhantomCloak/CliqueMatchmaker/actions/workflows/tests.yml/badge.svg)](https://github.com/PhantomCloak/CliqueMatchmaker/actions/workflows/tests.yml)
+[![Benchmark](https://github.com/PhantomCloak/CliqueMatchmaker/actions/workflows/benchmark.yml/badge.svg)](https://github.com/PhantomCloak/CliqueMatchmaker/actions/workflows/benchmark.yml)
 
 
-Sukhoi is a general purpose matchmaking engine covers wide-variety of real-world use cases.
+CliqueMatchmaker is a general purpose matchmaking engine covers wide-variety of real-world use cases.
 
 ## Features
 
@@ -42,7 +42,7 @@ Ticket is a matchmaking resource can contain one or more players. Ticket holds p
 
 ## Query
 
-Sukhoi has full support for Apache Lucene query syntax — `MUST`, `MUST_NOT`, `SHOULD`, `OR` clauses, ranges and regex expressions. Each ticket holds properties can hold multiple queries at once for given patience schedule. In formed match every member guaranteed to accept each other.
+CliqueMatchmaker has full support for Apache Lucene query syntax — `MUST`, `MUST_NOT`, `SHOULD`, `OR` clauses, ranges and regex expressions. Each ticket holds properties can hold multiple queries at once for given patience schedule. In formed match every member guaranteed to accept each other.
 
 ### Example Queries
 

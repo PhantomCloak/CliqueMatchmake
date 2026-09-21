@@ -1,6 +1,6 @@
 using Lucene.Net.Search;
 
-namespace Sukhoi.Tests;
+namespace CliqueMatchmaker.Tests;
 
 public class TrimmingTests
 {

@@ -1,0 +1,11 @@
+<Solution>
+  <Folder Name="/benchmarks/">
+    <Project Path="benchmarks/CliqueMatchmaker.Benchmarks.csproj" />
+  </Folder>
+  <Folder Name="/src/">
+    <Project Path="src/CliqueMatchmaker.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/CliqueMatchmaker.Tests.csproj" />
+  </Folder>
+</Solution>

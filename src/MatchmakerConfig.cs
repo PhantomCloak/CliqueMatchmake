@@ -1,4 +1,4 @@
-namespace Sukhoi;
+namespace CliqueMatchmaker;
 
 public class MatchmakerConfig {
     public int MaxTicketPerSession = 3;

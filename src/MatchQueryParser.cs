@@ -4,7 +4,7 @@ using Lucene.Net.QueryParsers.Classic;
 using Lucene.Net.Search;
 using Lucene.Net.Util;
 
-namespace Sukhoi;
+namespace CliqueMatchmaker;
 
 public sealed class MatchQueryParser : QueryParser
 {
