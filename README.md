@@ -100,7 +100,7 @@ Reference: `BackfillSeatsQueuedPlayersIntoARunningLobby`
 dotnet run -c Release --project benchmarks -- --sizes=1000,10000 --iters=3
 ```
 
-Measured cases on R7950X, .NET 8 Runtime
+### Scenarios
 
 - `chess1v1` — ranked 1v1 chess, bell-curve MMR
 - `simple5v5` — simple 5v5, no preference
@@ -110,6 +110,9 @@ Measured cases on R7950X, .NET 8 Runtime
 - `roleQueue5` — 5v5 seat queue, 1 tank / 2 dps / 2 support
 - `mapOr` — map preference, OR clause
 - `mapRegex` — map preference, regex
+
+<br>
+Measured on R7950X Linux Desktop (32 cores, 16 GB RAM), .NET 10
 
 | Scenario     | Players |    add | add alloc |  sweep | sweep alloc | tickets/s |
 | ------------ | ------: | -----: | --------: | -----: | ----------: | --------: |
