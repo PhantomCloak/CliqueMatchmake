@@ -231,8 +231,6 @@ public partial class Matchmaker : IDisposable
 
         var (queryStrings, parsedQueries) = MatchQueryParser.ParseLadder(Array.ConvertAll(queryLadder, rung => rung.Query));
 
-        // the second each rung was named on, carried alongside the query it parsed to, so the sweep
-        // reads one array rather than two in step
         var parsedQueryLadder = new ParsedQueryRung[queryLadder.Length];
         for (int i = 0; i < queryLadder.Length; i++)
         {
@@ -243,8 +241,6 @@ public partial class Matchmaker : IDisposable
 
         long queuedAt = ((createdAt ?? DateTime.UtcNow).Ticks - DateTime.UnixEpoch.Ticks) * 100;
         long stampedAt = _lastCreatedAt = queuedAt > _lastCreatedAt ? queuedAt : _lastCreatedAt + 1;
-
-        // built from what the caller wrote, after every rule above has been held against it
 
         var index = new MatchmakerTicket
         {
