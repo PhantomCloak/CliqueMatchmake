@@ -1,6 +1,8 @@
 ## Sukhoi Matchmaker
 
 [![Tests](https://github.com/PhantomCloak/CMatchDraft/actions/workflows/tests.yml/badge.svg)](https://github.com/PhantomCloak/CMatchDraft/actions/workflows/tests.yml)
+[![Benchmark](https://github.com/PhantomCloak/Sukhoi/actions/workflows/benchmark.yml/badge.svg)](https://github.com/PhantomCloak/Sukhoi/actions/workflows/benchmark.yml)
+
 
 Sukhoi is a general purpose matchmaking engine covers wide-variety of real-world use cases.
 
