@@ -72,7 +72,7 @@ Reference: `RankedFiveVsFiveWithTolerance`
 
 ### Role queue
 
-Similar to Overwatch, a team must consist of 1 tank / 2 dps / 2 support. Player picks which roles they can play and every seat is filled once
+Similar to Overwatch, a team must consist of 1 tank / 2 dps / 2 support
 
 Reference: `CoopRoleQueueFormsOneTankTwoDpsTwoSupport`
 
@@ -84,7 +84,7 @@ Reference: `CoopMatchesThreePlayersWhoAvoidEachOther`
 
 ### Map Selection
 
-Player either picks the maps they want to play or says any map is fine. Both end up in the same match as long as one map is left that everybody agreed on. In the regex variant a player can also ask for any defusal map, e.g. `de_*`
+Player either picks the maps they want to play or says any map is fine. Both end up in the same match. In the regex variant a player can also ask for any defusal map, e.g. `de_*`
 
 Reference: `MapPreferenceMatchesPickyPlayersWithFlexiblePlayers`, `RegexMapPreferenceMatchesPickyPlayersWithFlexiblePlayers`
 
