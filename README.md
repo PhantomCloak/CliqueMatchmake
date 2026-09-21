@@ -58,6 +58,22 @@ Sukhoi has full support for Apache Lucene query syntax — `MUST`, `MUST_NOT`, `
 ```
 
 
+## Example & Demo
+In GameModeTests following cases are covered
+
+### Simple 5v5 Quickplay game mode
+
+
+### 5v5 Ranked game mode
+
+### Role queue
+Similar to Overwatch a team must consist of 
+
+### Avoid as teammate
+
+### Backfill to lobby
+
+
 ## Benchmarks
 
 ```sh
@@ -96,5 +112,18 @@ Measured cases on R7950X, .NET 8 Runtime
 | `roleQueue5` | 789 ms | 652 MB | 127 ms | 128 MB | 141,231 |
 | `mapOr` | 637 ms | 465 MB | 187 ms | 90 MB | 53,217 |
 | `mapRegex` | 909 ms | 1.16 GB | 68 ms | 76 MB | 145,490 |
+
+Measured on GitHub Actions runner, `ubuntu-latest` (2 cores, 8 GB RAM), .NET 10
+
+| Scenario (1000 Players) | add | add alloc | sweep | sweep alloc | tickets/s |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| `chess1v1` | 321 ms | 36 MB | 397 ms | 78 MB | 2,516 |
+| `simple5v5` | 37 ms | 13 MB | 25 ms | 8 MB | 39,226 |
+| `ranked5v5` | 92 ms | 33 MB | 34 ms | 24 MB | 29,648 |
+| `modes10` | 73 ms | 26 MB | 17 ms | 9 MB | 59,911 |
+| `coop3` | 56 ms | 30 MB | 18 ms | 8 MB | 55,038 |
+| `roleQueue5` | 104 ms | 57 MB | 20 ms | 14 MB | 88,502 |
+| `mapOr` | 72 ms | 41 MB | 41 ms | 18 MB | 24,498 |
+| `mapRegex` | 298 ms | 117 MB | 9 ms | 9 MB | 110,341 |
 
 Benchmark Note: rolequeue5 case uses multiple tickets where each player get N number of tickets per role
