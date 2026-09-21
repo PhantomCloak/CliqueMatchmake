@@ -132,15 +132,23 @@ Measured cases on R7950X, .NET 8 Runtime
 
 Measured on GitHub Actions runner, `ubuntu-latest` (2 cores, 8 GB RAM), .NET 10
 
-| Scenario (1000 Players) |    add | add alloc |  sweep | sweep alloc | tickets/s |
-| ----------------------- | -----: | --------: | -----: | ----------: | --------: |
-| `chess1v1`              | 321 ms |     36 MB | 397 ms |       78 MB |     2,516 |
-| `simple5v5`             |  37 ms |     13 MB |  25 ms |        8 MB |    39,226 |
-| `ranked5v5`             |  92 ms |     33 MB |  34 ms |       24 MB |    29,648 |
-| `modes10`               |  73 ms |     26 MB |  17 ms |        9 MB |    59,911 |
-| `coop3`                 |  56 ms |     30 MB |  18 ms |        8 MB |    55,038 |
-| `roleQueue5`            | 104 ms |     57 MB |  20 ms |       14 MB |    88,502 |
-| `mapOr`                 |  72 ms |     41 MB |  41 ms |       18 MB |    24,498 |
-| `mapRegex`              | 298 ms |    117 MB |   9 ms |        9 MB |   110,341 |
+| Scenario     | Players |     add | add alloc |  sweep | sweep alloc | tickets/s |
+| ------------ | ------: | ------: | --------: | -----: | ----------: | --------: |
+| `chess1v1`   |      1k |  321 ms |     36 MB | 397 ms |       78 MB |     2,516 |
+| `chess1v1`   |     10k |  835 ms |    325 MB | 722 ms |      351 MB |    13,854 |
+| `simple5v5`  |      1k |   37 ms |     13 MB |  25 ms |        8 MB |    39,226 |
+| `simple5v5`  |     10k |  187 ms |    129 MB | 137 ms |       74 MB |    73,229 |
+| `ranked5v5`  |      1k |   92 ms |     33 MB |  34 ms |       24 MB |    29,648 |
+| `ranked5v5`  |     10k |  554 ms |    321 MB | 146 ms |       96 MB |    68,683 |
+| `modes10`    |      1k |   73 ms |     26 MB |  17 ms |        9 MB |    59,911 |
+| `modes10`    |     10k |  424 ms |    260 MB | 104 ms |       75 MB |    96,315 |
+| `coop3`      |      1k |   56 ms |     30 MB |  18 ms |        8 MB |    55,038 |
+| `coop3`      |     10k |  515 ms |    296 MB | 136 ms |       74 MB |    73,538 |
+| `roleQueue5` |      1k |  104 ms |     57 MB |  20 ms |       14 MB |    88,502 |
+| `roleQueue5` |     10k | 1000 ms |    575 MB | 224 ms |      125 MB |    80,318 |
+| `mapOr`      |      1k |   72 ms |     41 MB |  41 ms |       18 MB |    24,498 |
+| `mapOr`      |     10k |  729 ms |    411 MB | 342 ms |       89 MB |    29,229 |
+| `mapRegex`   |      1k |  298 ms |    117 MB |   9 ms |        9 MB |   110,341 |
+| `mapRegex`   |     10k | 1663 ms |   1.12 GB | 150 ms |       75 MB |    66,453 |
 
 Benchmark Note: rolequeue5 case uses multiple tickets where each player get N number of tickets per role
