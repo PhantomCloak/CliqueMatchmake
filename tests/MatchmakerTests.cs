@@ -82,7 +82,7 @@ public class MatchmakerTests
     }
 
     [Test]
-    public void SettledSizeMeetsTheHighestFloorInTheLobby() // OK
+    public void SettledSizeMeetsTheHighestFloorInTheLobby()
     {
         using var m = new Matchmaker();
 
@@ -214,80 +214,7 @@ public class MatchmakerTests
             Assert.That(widerNewcomerMatches[0].SelectMany(ticket => ticket.Members), Is.EquivalentTo(new[] { "p1_t0", "p2_tMax" }));
             Assert.That(widerNewcomer.PoolSize, Is.Zero);
         });
-    }
-
-    [Test]
-    public void OldestCandidateIsMatchedFirstEvenWhenANewerOneMatchesMoreOrClausesInsideParentheses()
-    {
-        using var m = new Matchmaker();
-
-        void AddPlayer(string player, params string[] maps) =>
-            m.Add(
-                sessionIds: [player],
-                ownerSessionId: player,
-                partyId: "",
-                queryLadder: [(0, $"+({string.Join(" OR ", maps.Select(map => $"properties.map_{map}:T"))})")],
-                properties: maps
-                    .Select(map => new KeyValuePair<string, object>($"map_{map}", true))
-                    .ToDictionary(kv => kv.Key, kv => kv.Value),
-                minMaxLadder: [(0, 2, 2)]);
-
-        AddPlayer("p1_dustOrInferno", "dust2", "inferno");
-        AddPlayer("p2_dust", "dust2");
-        AddPlayer("p3_dustAndInferno", "dust2", "inferno");
-
-        var matches = m.RunSweep();
-
-        Assert.That(matches, Has.Count.EqualTo(1));
-        Assert.That(matches[0].SelectMany(ticket => ticket.Members), Is.EquivalentTo(new[] { "p1_dustOrInferno", "p2_dust" }), "the older candidate takes the seat, though p3 matches both of the seed's maps");
-        Assert.That(m.PoolSize, Is.EqualTo(1), "only the newest ticket is left waiting");
-    }
-
-    [Test]
-    public void MatchedOptionalClausesOutrankQueueOrderAndCreatedAtBreaksTheTie()
-    {
-        using var m = new Matchmaker();
-
-        string[] PreferenceOptions = ["a", "b", "c"];
-
-        void AddPlayer(Matchmaker matchmaker, string player, string[] wants, bool expressPreferences = true) =>
-            matchmaker.Add(
-                sessionIds: [player],
-                ownerSessionId: player,
-                partyId: "",
-                queryLadder: [(0, $"+properties.mode:comp +properties.region:eu{(expressPreferences ? string.Concat(PreferenceOptions.Select(option => $" properties.opt_{option}:T")) : "")}")],
-                properties: new Dictionary<string, object> { ["mode"] = "comp", ["region"] = "eu" }
-                    .Concat(wants.Select(want => KeyValuePair.Create($"opt_{want}", (object)true)))
-                    .ToDictionary(),
-                minMaxLadder: [(0, 3, 3)]);
-
-        AddPlayer(m, "p1", []);
-
-        AddPlayer(m, "p2", ["a"]);
-        AddPlayer(m, "p3", ["a", "b"]);
-        AddPlayer(m, "p4", ["b", "c"]);
-        AddPlayer(m, "p5", ["a", "b", "c"]);
-
-        var matches = m.RunSweep();
-
-        Assert.That(matches, Has.Count.EqualTo(1));
-        Assert.That(matches[0].SelectMany(ticket => ticket.Members), Is.EquivalentTo(new[] { "p1", "p5", "p3" }), "preference count picks the seats and age breaks the tie");
-        Assert.That(m.PoolSize, Is.EqualTo(2), "the oldest candidate matched the fewest preferences");
-
-        using var flat = new Matchmaker();
-
-        AddPlayer(flat, "p1", [], expressPreferences: false);
-
-        AddPlayer(flat, "p2", ["a"], expressPreferences: false);
-        AddPlayer(flat, "p3", ["a", "b"], expressPreferences: false);
-        AddPlayer(flat, "p4", ["b", "c"], expressPreferences: false);
-        AddPlayer(flat, "p5", ["a", "b", "c"], expressPreferences: false);
-
-        var controlMatches = flat.RunSweep();
-
-        Assert.That(controlMatches, Has.Count.EqualTo(1));
-        Assert.That(controlMatches[0].SelectMany(ticket => ticket.Members), Is.EquivalentTo(new[] { "p1", "p2", "p3" }), "with nothing to rank on, the longest waiting are seated");
-    }
+    } 
 
     [Test]
     public void TicketQueuedLongAgoStartsOnTheRungItsAgeEarns()
@@ -637,6 +564,79 @@ public class MatchmakerTests
             Assert.That(match.SelectMany(ticket => ticket.Members), Is.EquivalentTo(new[] { "p1", "p2", "p3", "p4" }));
             Assert.That(m.PoolSize, Is.EqualTo(1), "odd is left waiting");
         });
+    }
+
+    [Test]
+    public void OldestCandidateIsMatchedFirstEvenWhenANewerOneMatchesMoreOrClausesInsideParentheses()
+    {
+        using var m = new Matchmaker();
+
+        void AddPlayer(string player, params string[] maps) =>
+            m.Add(
+                sessionIds: [player],
+                ownerSessionId: player,
+                partyId: "",
+                queryLadder: [(0, $"+({string.Join(" OR ", maps.Select(map => $"properties.map_{map}:T"))})")],
+                properties: maps
+                    .Select(map => new KeyValuePair<string, object>($"map_{map}", true))
+                    .ToDictionary(kv => kv.Key, kv => kv.Value),
+                minMaxLadder: [(0, 2, 2)]);
+
+        AddPlayer("p1_dustOrInferno", "dust2", "inferno");
+        AddPlayer("p2_dust", "dust2");
+        AddPlayer("p3_dustAndInferno", "dust2", "inferno");
+
+        var matches = m.RunSweep();
+
+        Assert.That(matches, Has.Count.EqualTo(1));
+        Assert.That(matches[0].SelectMany(ticket => ticket.Members), Is.EquivalentTo(new[] { "p1_dustOrInferno", "p2_dust" }), "the older candidate takes the seat, though p3 matches both of the seed's maps");
+        Assert.That(m.PoolSize, Is.EqualTo(1), "only the newest ticket is left waiting");
+    }
+
+    [Test]
+    public void MatchedOptionalClausesOutrankQueueOrderAndCreatedAtBreaksTheTie()
+    {
+        using var m = new Matchmaker();
+
+        string[] PreferenceOptions = ["a", "b", "c"];
+
+        void AddPlayer(Matchmaker matchmaker, string player, string[] wants, bool expressPreferences = true) =>
+            matchmaker.Add(
+                sessionIds: [player],
+                ownerSessionId: player,
+                partyId: "",
+                queryLadder: [(0, $"+properties.mode:comp +properties.region:eu{(expressPreferences ? string.Concat(PreferenceOptions.Select(option => $" properties.opt_{option}:T")) : "")}")],
+                properties: new Dictionary<string, object> { ["mode"] = "comp", ["region"] = "eu" }
+                    .Concat(wants.Select(want => KeyValuePair.Create($"opt_{want}", (object)true)))
+                    .ToDictionary(),
+                minMaxLadder: [(0, 3, 3)]);
+
+        AddPlayer(m, "p1", []);
+
+        AddPlayer(m, "p2", ["a"]);
+        AddPlayer(m, "p3", ["a", "b"]);
+        AddPlayer(m, "p4", ["b", "c"]);
+        AddPlayer(m, "p5", ["a", "b", "c"]);
+
+        var matches = m.RunSweep();
+
+        Assert.That(matches, Has.Count.EqualTo(1));
+        Assert.That(matches[0].SelectMany(ticket => ticket.Members), Is.EquivalentTo(new[] { "p1", "p5", "p3" }), "preference count picks the seats and age breaks the tie");
+        Assert.That(m.PoolSize, Is.EqualTo(2), "the oldest candidate matched the fewest preferences");
+
+        using var flat = new Matchmaker();
+
+        AddPlayer(flat, "p1", [], expressPreferences: false);
+
+        AddPlayer(flat, "p2", ["a"], expressPreferences: false);
+        AddPlayer(flat, "p3", ["a", "b"], expressPreferences: false);
+        AddPlayer(flat, "p4", ["b", "c"], expressPreferences: false);
+        AddPlayer(flat, "p5", ["a", "b", "c"], expressPreferences: false);
+
+        var controlMatches = flat.RunSweep();
+
+        Assert.That(controlMatches, Has.Count.EqualTo(1));
+        Assert.That(controlMatches[0].SelectMany(ticket => ticket.Members), Is.EquivalentTo(new[] { "p1", "p2", "p3" }), "with nothing to rank on, the longest waiting are seated");
     }
 
     [Test]
