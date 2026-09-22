@@ -8,9 +8,8 @@ CliqueMatchmaker is a general purpose matchmaking engine covers wide-variety of 
 
 ## Features
 
-- Tickets can dynamically define what/who they ask without needing to pre-define anything
-- Tickets can define multiple queries depending on how long they were waiting such as relaxing search criteria
-- Tickets can define narrower room sizes depending on how long they were waiting
+- Tickets can dynamically define what/who they ask
+- Tickets can define multiple queries and narrower room sizes depending on how long they were waiting
 - Matchmaking supports solo players as well as group of players like Parties
 - Matchmaker engine guarantees every player in the room mutually accepts each other
 - Backfilling
@@ -56,45 +55,18 @@ CliqueMatchmaker has full support for Apache Lucene query syntax — `MUST`, `MU
 +properties.mode:ranked properties.party:T^10 // must be ranked, strongly prefer players who are in a party
 ```
 
-## Examples
+## Code Examples
 
 The following examples can be found in `GameModeTests.cs`
 
-### 5v5 Quickplay
-
-Casual game mode where the player just wants a game quickly, so anyone in the queue is fine as a teammate
-
-Reference: `SimpleFiveVsFiveMatchesAnyTenPlayers`
-
-### 5v5 Ranked
-
-Competitive game mode where every player has an MMR and expects a lobby around their own level. A player who waits longer in the queue starts accepting wider skill gaps
-
-Reference: `RankedFiveVsFiveWithTolerance`
-
-### Role queue
-
-Similar to Overwatch, a team must consist of 1 tank / 2 dps / 2 support
-
-Reference: `CoopRoleQueueFormsOneTankTwoDpsTwoSupport`
-
-### Avoid as teammate
-
-Player can provide a list of people they don't want to be in the same match with. Similar to Dota and Overwatch, players have the choice to avoid playing with certain players
-
-Reference: `CoopMatchesThreePlayersWhoAvoidEachOther`
-
-### Map Selection
-
-Player either picks the maps they want to play or says any map is fine. Both end up in the same match. In the regex variant a player can also ask for any defusal map, e.g. `de_*`
-
-Reference: `MapPreferenceMatchesPickyPlayersWithFlexiblePlayers`, `RegexMapPreferenceMatchesPickyPlayersWithFlexiblePlayers`
-
-### Backfill to lobby
-
-One or more people either left or disconnected from the lobby and the game server creates a backfilling ticket to fill the remaining slots in an ongoing match
-
-Reference: `BackfillSeatsQueuedPlayersIntoARunningLobby`
+| Scenario | Desc | Reference Test |
+| --- | --- | --- |
+| 5v5 Quickplay | Casual mode, anyone in the queue is a fine teammate | `SimpleFiveVsFiveMatchesAnyTenPlayers` |
+| 5v5 Ranked | MMR-matched lobbies, the accepted skill gap widens with queue time | `RankedFiveVsFiveWithTolerance` |
+| Role queue | A team must be 1 tank / 2 dps / 2 support | `CoopRoleQueueFormsOneTankTwoDpsTwoSupport` |
+| Avoid as teammate | Player lists people they don't want in the same match | `CoopMatchesThreePlayersWhoAvoidEachOther` |
+| Map Selection | Picky map players and any-map players land in the same match, regex variant accepts `de_*` | `MapPreferenceMatchesPickyPlayersWithFlexiblePlayers`<br>`RegexMapPreferenceMatchesPickyPlayersWithFlexiblePlayers` |
+| Backfill to lobby | The game server queues a ticket to fill slots left by leavers in a running match | `BackfillSeatsQueuedPlayersIntoARunningLobby` |
 
 ## Benchmarks
 
